@@ -32,7 +32,6 @@ void add_list_front(LIST* list, LIST_ITEM data)
 	}
 
 	item->data = data.data;
-	item->type = data.type;
 	item->next = NULL;
 
 	if (list->count == 0)
@@ -66,7 +65,6 @@ void add_list_back(LIST* list, LIST_ITEM data)
 	}
 
 	item->data = data.data;
-	item->type = data.type;
 	item->next = NULL;
 
 	if (list->count == 0)
@@ -193,33 +191,6 @@ bool free_list(LIST** list)
 	return true;
 }
 
-void print_list_item(LIST_ITEM* data)
-{
-	if (data == NULL)
-	{
-		printf("print_list_item() failed: data is NULL\n");
-		return;
-	}
-	// print element based on type
-	switch (data->type)
-	{
-	case text:
-		printf("%s, \n", (char*)data->data);
-		break;
-	case number:
-		printf("%d, \n", *(int*)data->data);
-		break;
-	case publisher:
-		printf("Not implemented\n");
-		//printf("%s\n", ((PUB_INFO*)data->data)->name);
-		break;
-	case subscriber:
-		printf("Not implemented\n");
-		//printf("%s\n", ((SUB_INFO*)data->data)->name);
-		break;
-
-	}
-}
 
 void print_list(LIST* list)
 {
@@ -239,7 +210,7 @@ void print_list(LIST* list)
 	printf("List count: %d\n[", list->count);
 	while (item != NULL)
 	{
-		print_list_item(item);
+		printf("Socket: %lu", item->data);
 		item = item->next;
 	}
 	printf("]\n");

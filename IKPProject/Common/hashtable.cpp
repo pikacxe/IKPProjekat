@@ -18,13 +18,8 @@ HASH_TABLE* init_hash_table()
 
 	for (int i = 0; i < TABLE_SIZE; i++)
 	{
-		table->items[i].list = init_list();
-		strcpy_s(table->items[i].key, "\0");
-		if (table->items[i].list == NULL)
-		{
-			printf("init_hash_table() failed: out of memory\n");
-			return NULL;
-		}
+		table->items[i].list = NULL;
+		table->items[i].key = (char*)malloc(sizeof(char) * MAX_KEY_LEN);
 	}
 	InitializeCriticalSection(&table->cs);
 
@@ -48,7 +43,51 @@ int hash(const char* key)
 	return hash % TABLE_SIZE;
 }
 
-bool add_table_item(HASH_TABLE* table, const char* key, LIST_ITEM item)
+bool add_list_table(HASH_TABLE* table, const char* key)
+{
+	if (table == NULL)
+	{
+		printf("add_list_table() failed: table is NULL\n");
+		return false;
+	}
+
+	if (key == NULL)
+	{
+		printf("add_list_table() failed: key is NULL\n");
+		return false;
+	}
+
+	if (strlen(key) > MAX_KEY_LEN)
+	{
+		printf("add_list_table() failed: key is too long\n");
+		return false;
+	}
+
+	EnterCriticalSection(&table->cs);
+
+	int index = hash(key);
+	if (index == -1)
+	{
+		printf("add_list_table() failed: hash() failed\n");
+		LeaveCriticalSection(&table->cs);
+		return false;
+	}
+
+	table->items[index].list = init_list();
+	if (table->items[index].list == NULL)
+	{
+		printf("add_list_table() failed: init_list() failed\n");
+		LeaveCriticalSection(&table->cs);
+		return false;
+	}
+
+	strcpy_s(table->items[index].key, MAX_KEY_LEN, key);
+
+	LeaveCriticalSection(&table->cs);
+	return true;
+}
+
+bool add_table_item(HASH_TABLE* table, const char* key, SOCKET sock)
 {
 	if (table == NULL)
 	{
@@ -68,11 +107,6 @@ bool add_table_item(HASH_TABLE* table, const char* key, LIST_ITEM item)
 		return false;
 	}
 
-	if (item.data == NULL)
-	{
-		printf("add_table_item() failed: item is NULL\n");
-		return false;
-	}
 
 	EnterCriticalSection(&table->cs);
 
@@ -83,9 +117,12 @@ bool add_table_item(HASH_TABLE* table, const char* key, LIST_ITEM item)
 		LeaveCriticalSection(&table->cs);
 		return false;
 	}
-
-	strcpy_s(table->items[index].key, MAX_KEY_LEN, key);
-	add_list_front(table->items[index].list, item);
+	HASH_ITEM* item = &table->items[index];
+	if (item->list == NULL) {
+		printf("add_table_item() failed: list for key is NULL\n");
+	}
+	LIST_ITEM newItem = { sock, NULL };
+	add_list_front(item->list, newItem);
 
 	LeaveCriticalSection(&table->cs);
 	return true;
@@ -124,6 +161,46 @@ LIST* get_table_item(HASH_TABLE* table, const char* key)
 	HASH_ITEM item = table->items[index];
 	LeaveCriticalSection(&table->cs);
 	return item.list;
+}
+
+bool has_key(HASH_TABLE* table, const char* key)
+{
+	if (table == NULL)
+	{
+		printf("has_key() failed: table is NULL\n");
+		return false;
+	}
+
+	if (key == NULL)
+	{
+		printf("has_key() failed: key is NULL\n");
+		return false;
+	}
+
+	if (strlen(key) > MAX_KEY_LEN)
+	{
+		printf("has_key() failed: key is too long\n");
+		return false;
+	}
+
+	EnterCriticalSection(&table->cs);
+
+	int index = hash(key);
+	if (index == -1)
+	{
+		printf("has_key() failed: hash() failed\n");
+		LeaveCriticalSection(&table->cs);
+		return false;
+	}
+
+	if (strcmp(table->items[index].key, key) != 0)
+	{
+		LeaveCriticalSection(&table->cs);
+		return false;
+	}
+
+	LeaveCriticalSection(&table->cs);
+	return true;
 }
 
 bool remove_table_item(HASH_TABLE* table, const char* key)
@@ -215,7 +292,7 @@ void print_hash_table(HASH_TABLE* table)
 	printf("======== Hash Table ========\n");
 	for (int i = 0; i < TABLE_SIZE; i++)
 	{
-		if (strcmp(table->items[i].key,"\0") != 0) {
+		if (strcmp(table->items[i].key, "\0") != 0) {
 			printf("Index: %d\n", i);
 			printf("Key: %s\n", table->items[i].key);
 			printf("List:\n");

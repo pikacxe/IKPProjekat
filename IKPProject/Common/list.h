@@ -9,17 +9,9 @@
 
 #define MAX_LIST_SIZE 100
 
-typedef enum _ListItemTypes {
-	text,
-	number,
-	publisher,
-	subscriber
-} ListItemTypes;
-
 typedef struct _LIST_ITEM
 {
-	void* data;
-	ListItemTypes type;
+	SOCKET data;
 	struct _LIST_ITEM* next;
 } LIST_ITEM;
 
@@ -79,12 +71,6 @@ bool clear_list(LIST* list);
 /// <param name="list"></param>
 /// <returns>True if successful, otherwise false</returns>
 bool free_list(LIST** list);
-
-/// <summary>
-/// Print list item
-/// </summary>
-/// <param name="item"> - list item to print</param>
-void print_list_item(LIST_ITEM* item);
 
 /// <summary>
 /// Print list

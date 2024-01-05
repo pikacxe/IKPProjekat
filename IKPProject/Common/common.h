@@ -7,6 +7,8 @@
 
 
 #define SERVER_ADDR "127.0.0.1"
+#define PUB_PORT_S "10000"
+#define SUB_PORT_S "10001"
 #define PUB_PORT 10000
 #define SUB_PORT 10001
 #define BUFF_SIZE 4096

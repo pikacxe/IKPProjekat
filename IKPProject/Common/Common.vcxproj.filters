@@ -35,7 +35,7 @@
     <ClInclude Include="hashtable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="connect.h">
+    <ClInclude Include="service.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

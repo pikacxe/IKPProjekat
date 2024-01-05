@@ -7,7 +7,7 @@
 
 typedef struct _HASH_ITEM
 {
-	char key[MAX_KEY_LEN];
+	char* key;
 	LIST* list;
 } HASH_ITEM;
 
@@ -37,7 +37,15 @@ int hash(const char* key);
 /// <param name="key"> - table item key</param>
 /// <param name="item"> - item to add</param>
 /// <returns>True if addition is successful, otherwise false</returns>
-bool add_table_item(HASH_TABLE* table, const char* key, LIST_ITEM item);
+bool add_table_item(HASH_TABLE* table, const char* key, SOCKET item);
+
+/// <summary>
+/// Add list to hash table
+/// </summary>
+/// <param name="table"> - source table</param>
+/// <param name="key"> - table item key</param>
+/// <returns>True if addition is successful, otherwise false</returns>
+bool add_list_table(HASH_TABLE* table, const char* key);
 
 /// <summary>
 /// Get table item
@@ -46,6 +54,14 @@ bool add_table_item(HASH_TABLE* table, const char* key, LIST_ITEM item);
 /// <param name="key"> - item key</param>
 /// <returns>Table item if exists, otherwise NULL</returns>
 LIST* get_table_item(HASH_TABLE* table, const char* key);
+
+/// <summary>
+/// Check if table has item with specified key
+/// </summary>
+/// <param name="table"> - source table</param>
+/// <param name="key"> - item key</param>
+/// <returns>True if table has item with specified key, otherwise false</returns>
+bool has_key(HASH_TABLE* table, const char* key);
 
 /// <summary>
 /// Remove item from table
