@@ -19,6 +19,7 @@ HASH_TABLE* init_hash_table()
 	for (int i = 0; i < TABLE_SIZE; i++)
 	{
 		table->items[i].list = init_list();
+		strcpy_s(table->items[i].key, "\0");
 		if (table->items[i].list == NULL)
 		{
 			printf("init_hash_table() failed: out of memory\n");
@@ -214,7 +215,7 @@ void print_hash_table(HASH_TABLE* table)
 	printf("======== Hash Table ========\n");
 	for (int i = 0; i < TABLE_SIZE; i++)
 	{
-		if (table->items[i].list->count > 0) {
+		if (strcmp(table->items[i].key,"\0") != 0) {
 			printf("Index: %d\n", i);
 			printf("Key: %s\n", table->items[i].key);
 			printf("List:\n");

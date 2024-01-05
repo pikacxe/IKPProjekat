@@ -41,7 +41,7 @@ int main()
 	}
 	// remove list item at index 5
 	printf("Removing item at index 5...\n");
-	if (remove_list(list, 5))
+	if (remove_from_list(list, 5))
 	{
 		printf("Item removed\n");
 	}
@@ -63,7 +63,7 @@ int main()
 	#pragma endregion
 
 	// clear console
-	system("cls");
+	//system("cls");
 	printf("Preparing hash table tests...\n\n");
 	#pragma region HashTableTests
 	HASH_TABLE* table = init_hash_table();

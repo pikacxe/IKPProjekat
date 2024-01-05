@@ -106,7 +106,7 @@ LIST_ITEM* get_list_item(LIST* list, int index)
 	return item;
 }
 
-bool remove_list(LIST* list, int index)
+bool remove_from_list(LIST* list, int index)
 {
 	if (list == NULL)
 	{
@@ -158,7 +158,7 @@ bool clear_list(LIST* list)
 
 	while (list->count > 0)
 	{
-		if (!remove_list(list, 0))
+		if (!remove_from_list(list, 0))
 		{
 			printf("[WARN] clear_list() failed: failed to remove element from the list\n");
 		}
@@ -211,11 +211,11 @@ void print_list_item(LIST_ITEM* data)
 		break;
 	case publisher:
 		printf("Not implemented\n");
-		//printf("%s\n", ((PUBLISHER*)data->data)->name);
+		//printf("%s\n", ((PUB_INFO*)data->data)->name);
 		break;
 	case subscriber:
 		printf("Not implemented\n");
-		//printf("%s\n", ((SUBSCRIBER*)data->data)->name);
+		//printf("%s\n", ((SUB_INFO*)data->data)->name);
 		break;
 
 	}

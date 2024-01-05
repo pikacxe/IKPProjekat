@@ -64,7 +64,7 @@ LIST_ITEM* get_list_item(LIST* list, int index);
 /// <param name="list"> - source list</param>
 /// <param name="index"> - index of the list item</param>
 /// <returns>True if successful, otherwise false</returns>
-bool remove_list(LIST* list, int index);
+bool remove_from_list(LIST* list, int index);
 
 /// <summary>
 /// Clear list
@@ -79,13 +79,6 @@ bool clear_list(LIST* list);
 /// <param name="list"></param>
 /// <returns>True if successful, otherwise false</returns>
 bool free_list(LIST** list);
-
-/// <summary>
-/// Get list count
-/// </summary>
-/// <param name="list"> - source list</param>
-/// <returns>Number of elements, 0 if list is empty</returns>
-int get_list_count(LIST* list);
 
 /// <summary>
 /// Print list item

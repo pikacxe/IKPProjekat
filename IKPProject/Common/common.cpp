@@ -4,25 +4,28 @@
 bool InitializeWinsock()
 {
 	WSADATA wsaData;
-	int iResult;
-
-	// Initialize Winsock
-	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-	if (iResult)
+	// Initialize Win sock
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
 	{
-		printf("WSAStartup() failed with error: %d\n", iResult);
+		printf("WSAStartup() failed with error: %d\n", WSAGetLastError());
 		return false;
-	}
-
+	}	
 	return true;
 }
 
 SOCKET connect(short port)
 {
 	SOCKET sock = INVALID_SOCKET;
+
+	if (InitializeWinsock() == false)
+	{
+		printf("Failed to initialize winsock\n");
+		return INVALID_SOCKET;
+	}
 	sockaddr_in addr;
 	int addr_len = sizeof(addr);
 
+	// create socket
 	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (sock == INVALID_SOCKET)
 	{

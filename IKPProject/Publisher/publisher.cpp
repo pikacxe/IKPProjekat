@@ -1,16 +1,8 @@
-#include <stdio.h>
 #include "../Common/common.h"
-
 
 int main()
 {
 	printf("Preparing publisher...\n\n");
-
-	if (!InitializeWinsock())
-	{
-		printf("Failed to initialize winsock\n");
-		return 1;
-	}
 
 	SOCKET sock = connect(PUB_PORT);
 	if (sock == INVALID_SOCKET)
@@ -61,6 +53,10 @@ int main()
 			closesocket(sock);
 			WSACleanup();
 			return 1;
+		}
+		if(strcmp(pi.msg, "exit") == 0)
+		{
+			break;
 		}
 
 		// trim newline character

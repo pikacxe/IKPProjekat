@@ -3,6 +3,7 @@
 
 #include <WinSock2.h>
 #include <stdio.h>
+#pragma comment(lib, "ws2_32.lib")
 
 
 #define SERVER_ADDR "127.0.0.1"

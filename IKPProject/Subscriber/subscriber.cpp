@@ -4,12 +4,6 @@ int main()
 {
 	printf("Preparing subscriber...\n\n");
 
-	if (!InitializeWinsock())
-	{
-		printf("Failed to initialize winsock\n");
-		return 1;
-	}
-
 	SOCKET sock = connect(SUB_PORT);
 	if (sock == INVALID_SOCKET)
 	{
@@ -30,13 +24,13 @@ int main()
 	}
 	else
 	{
-		printf("Server: %s\n", buffer);
+		// print available topics
+		printf("Available topics: \n%s\n", buffer);
 	}
 	char* topics = buffer;
-	// print available topics
-	printf("Available topics: \n%s\n", topics);
 
 	// choose topic
+	SUB_INFO si;
 	char topic[MAX_TOPIC_LEN];
 	while (true)
 	{
@@ -63,6 +57,13 @@ int main()
 			printf("Topic \"%s\" is not available\n", topic);
 		}
 	}
+	// subscribe to topic
+	strcpy_s(si.topic, MAX_TOPIC_LEN, topic);
+	if (send(sock, (char*)&si, sizeof(SUB_INFO), 0) == SOCKET_ERROR)
+	{
+		printf("send() failed with error: %d\n", WSAGetLastError());
+		return 1;
+	}
 
 
 	// receive messages
@@ -76,6 +77,11 @@ int main()
 		else
 		{
 			printf("Message received: %s\n", buffer);
+		}
+		// check if message is "exit"
+		if (strcmp(buffer, "exit") == 0)
+		{
+			break;
 		}
 	}
 
