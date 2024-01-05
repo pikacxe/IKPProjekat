@@ -1,22 +1,21 @@
 #pragma once
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define WIN32_LEAN_AND_MEAN
 
 #include <WinSock2.h>
 #include <stdio.h>
 #pragma comment(lib, "ws2_32.lib")
 
 
-#define SERVER_ADDR "127.0.0.1"
-#define PUB_PORT_S "10000"
-#define SUB_PORT_S "10001"
-#define PUB_PORT 10000
-#define SUB_PORT 10001
 #define BUFF_SIZE 4096
 #define MAX_TOPIC_LEN 128
 #define MAX_MSG_LEN 2048
+#define SERVER_ADDR "127.0.0.1"
+#define PUB_PORT_S "7777"
+#define SUB_PORT_S "8888"
+#define PUB_PORT 7777
+#define SUB_PORT 8888
 
-#define MAX_PUBS 10
-#define MAX_SUBS 10
 
 typedef struct _PUB_INFO
 {

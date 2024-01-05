@@ -193,9 +193,8 @@ bool has_key(HASH_TABLE* table, const char* key)
 		return false;
 	}
 
-	if (strcmp(table->items[index].key, key) != 0)
+	if (table->items[index].list == NULL)
 	{
-		LeaveCriticalSection(&table->cs);
 		return false;
 	}
 

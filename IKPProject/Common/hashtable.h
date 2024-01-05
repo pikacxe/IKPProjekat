@@ -35,9 +35,9 @@ int hash(const char* key);
 /// </summary>
 /// <param name="table"> - source table</param>
 /// <param name="key"> - table item key</param>
-/// <param name="item"> - item to add</param>
+/// <param name="sock"> - item to add</param>
 /// <returns>True if addition is successful, otherwise false</returns>
-bool add_table_item(HASH_TABLE* table, const char* key, SOCKET item);
+bool add_table_item(HASH_TABLE* table, const char* key, SOCKET sock);
 
 /// <summary>
 /// Add list to hash table

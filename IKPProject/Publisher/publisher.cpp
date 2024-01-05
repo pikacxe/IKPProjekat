@@ -16,37 +16,29 @@ int main()
 	char buffer[BUFF_SIZE];
 	memset(buffer, 0, BUFF_SIZE);
 
-	// receive welcome message
-	if (recv(sock, buffer, BUFF_SIZE, 0) == SOCKET_ERROR)
-	{
-		printf("recv() failed with error: %d\n", WSAGetLastError());
-		return 1;
-	}
-	else
-	{
-		printf("Server: %s\n", buffer);
-	}
-
 	PUB_INFO pi;
-	// start publishing messages to chosen topic
-	char topic[MAX_TOPIC_LEN];
-	printf("Enter topic: ");
-	if (fgets(pi.topic, MAX_TOPIC_LEN, stdin) == NULL)
-	{
-		printf("fgets() failed: topic\n");
-		closesocket(sock);
-		WSACleanup();
-		return 1;
-	}
-	// trim newline character
-	if (pi.topic[strlen(pi.topic) - 1] == '\n')
-	{
-		pi.topic[strlen(pi.topic) - 1] = '\0';
-	}
 	while (true) {
 
+		// start publishing messages to chosen topic
+		printf("Enter topic: ");
+		if (fgets(pi.topic, MAX_TOPIC_LEN, stdin) == NULL)
+		{
+			printf("fgets() failed: topic\n");
+			closesocket(sock);
+			WSACleanup();
+			return 1;
+		}
+		// trim newline character
+		if (pi.topic[strlen(pi.topic) - 1] == '\n')
+		{
+			pi.topic[strlen(pi.topic) - 1] = '\0';
+		}
+		if (strcmp(pi.topic, "exit") == 0)
+		{
+			break;
+		}
 
-		printf("Enter message for \"%s\": ", topic);
+		printf("Enter message for \"%s\": ", pi.topic);
 		if (fgets(pi.msg, MAX_MSG_LEN, stdin) == NULL)
 		{
 			printf("fgets() failed: message\n");
@@ -54,7 +46,7 @@ int main()
 			WSACleanup();
 			return 1;
 		}
-		if(strcmp(pi.msg, "exit") == 0)
+		if (strcmp(pi.msg, "exit") == 0)
 		{
 			break;
 		}

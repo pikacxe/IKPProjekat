@@ -1,3 +1,4 @@
+#pragma once
 #include "pubsublib.h"
 
 
@@ -67,7 +68,7 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 		// create request
 		REQUEST* request = NULL;
 		// accept a client socket
-		acceptSocket = accept(listenSocket, NULL, NULL);
+		acceptSocket = accept(listenSocket,NULL, NULL);
 		if (acceptSocket == INVALID_SOCKET) {
 			printf("accept failed with error: %d\n", WSAGetLastError());
 			closesocket(listenSocket);
@@ -80,6 +81,7 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 		{
 			printf("GlobalAlloc failed with error: %d\n", GetLastError());
 			closesocket(listenSocket);
+			closesocket(acceptSocket);
 			WSACleanup();
 			return 1;
 		}
@@ -199,7 +201,7 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 		// create request
 		REQUEST* request = NULL;
 		// accept a client socket
-		acceptSocket = accept(listenSocket, NULL, NULL);
+		acceptSocket = accept(listenSocket,NULL, NULL);
 		if (acceptSocket == INVALID_SOCKET) {
 			printf("accept failed with error: %d\n", WSAGetLastError());
 			closesocket(listenSocket);

@@ -16,55 +16,26 @@ int main()
 	char buffer[BUFF_SIZE];
 	memset(buffer, 0, BUFF_SIZE);
 
-	// receive welcome message
-	if (recv(sock, buffer, BUFF_SIZE, 0) == SOCKET_ERROR)
+
+	printf("Enter topic: ");
+	if (fgets(buffer, MAX_TOPIC_LEN, stdin) == NULL)
 	{
-		printf("recv() failed with error: %d\n", WSAGetLastError());
+		printf("Failed to read topic\n");
 		return 1;
 	}
-	else
+	// remove newline character
+	if (buffer[strlen(buffer) - 1] == '\n')
 	{
-		// print available topics
-		printf("Available topics: \n%s\n", buffer);
+		buffer[strlen(buffer) - 1] = '\0';
 	}
-	char* topics = buffer;
 
-	// choose topic
-	SUB_INFO si;
-	char topic[MAX_TOPIC_LEN];
-	while (true)
-	{
-		printf("Enter topic: ");
-		if (fgets(topic, MAX_TOPIC_LEN, stdin) == NULL)
-		{
-			printf("fgets() failed: topic\n");
-			closesocket(sock);
-			WSACleanup();
-			return 1;
-		}
-		// trim newline character
-		if (topic[strlen(topic) - 1] == '\n')
-		{
-			topic[strlen(topic) - 1] = '\0';
-		}
-		// check if topic is available
-		if (strstr(topics, topic) != NULL)
-		{
-			break;
-		}
-		else
-		{
-			printf("Topic \"%s\" is not available\n", topic);
-		}
-	}
-	// subscribe to topic
-	strcpy_s(si.topic, MAX_TOPIC_LEN, topic);
-	if (send(sock, (char*)&si, sizeof(SUB_INFO), 0) == SOCKET_ERROR)
+	if (send(sock, buffer, BUFF_SIZE, 0) == SOCKET_ERROR)
 	{
 		printf("send() failed with error: %d\n", WSAGetLastError());
+		closesocket(sock);
+		WSACleanup();
 		return 1;
 	}
-
 
 	// receive messages
 	while (true) {
@@ -72,16 +43,22 @@ int main()
 		if (recv(sock, buffer, BUFF_SIZE, 0) == SOCKET_ERROR)
 		{
 			printf("recv() failed with error: %d\n", WSAGetLastError());
+			closesocket(sock);
+			WSACleanup();
 			return 1;
+		}
+		if (strcmp(buffer, "") == 0)
+		{
+			printf("Topic does not exist\n");
+		}
+		// check if message is "exit"
+		else if (strcmp(buffer, "exit") == 0)
+		{
+			break;
 		}
 		else
 		{
 			printf("Message received: %s\n", buffer);
-		}
-		// check if message is "exit"
-		if (strcmp(buffer, "exit") == 0)
-		{
-			break;
 		}
 	}
 

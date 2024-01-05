@@ -14,7 +14,7 @@ int main() {
 		return 1;
 	}
 
-	if (InitializeWinsock() != 0) {
+	if (InitializeWinsock() == 0) {
 		printf("Error initializing winsock\n");
 		return 1;
 	}
@@ -35,7 +35,7 @@ int main() {
 	}
 
 	// Create publisher accept thread
-	HANDLE pubAcceptThreadHandle = CreateThread(NULL, 0, PUBAcceptThread, (LPVOID)&args, 0, NULL);
+	HANDLE pubAcceptThreadHandle = CreateThread(NULL, 0, PUBAcceptThread, args.completionPort, 0, NULL);
 	if (pubAcceptThreadHandle == NULL) {
 		printf("Error creating publisher accept thread\n");
 		WSACleanup();
@@ -44,7 +44,7 @@ int main() {
 	}
 
 	// Create subscriber accept thread
-	HANDLE subAcceptThreadHandle = CreateThread(NULL, 0, SUBAcceptThread, (LPVOID)&args, 0, NULL);
+	HANDLE subAcceptThreadHandle = CreateThread(NULL, 0, SUBAcceptThread, args.completionPort, 0, NULL);
 	if (subAcceptThreadHandle == NULL) {
 		printf("Error creating subscriber accept thread\n");
 		WSACleanup();
@@ -52,9 +52,9 @@ int main() {
 		return 1;
 	}
 
+
 	printf("Press any key to exit...\n");
 	getchar();
-
 
 	CloseHandle(pubAcceptThreadHandle);
 	CloseHandle(subAcceptThreadHandle);
