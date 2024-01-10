@@ -80,6 +80,8 @@ bool add_list_table(HASH_TABLE* table, const char* key)
 		LeaveCriticalSection(&table->cs);
 		return false;
 	}
+	
+	strcpy_s(table->items[index].key, MAX_KEY_LEN, key);
 
 	LeaveCriticalSection(&table->cs);
 	return true;
@@ -194,6 +196,7 @@ bool has_key(HASH_TABLE* table, const char* key)
 
 	if (table->items[index].list == NULL)
 	{
+		LeaveCriticalSection(&table->cs);
 		return false;
 	}
 
