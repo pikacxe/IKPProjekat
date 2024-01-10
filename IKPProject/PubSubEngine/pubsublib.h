@@ -27,7 +27,23 @@ typedef struct {
 	HASH_TABLE* hashTable;
 }THR_ARGS;
 
-
+/// <summary>
+/// Worker thread function
+/// </summary>
+/// <param name="arg">Thread args</param>
+/// <returns>Thread handle</returns>
 DWORD WINAPI WorkerThread(LPVOID arg);
+
+/// <summary>
+/// Accept thread function
+/// </summary>
+/// <param name="completionPort">Completion port</param>
+/// <returns>Thread handle</returns>
 DWORD WINAPI PUBAcceptThread(LPVOID completionPort);
+
+/// <summary>
+/// Accept thread function
+/// </summary>
+/// <param name="completionPort">Completion port</param>
+/// <returns>Thread handle</returns>
 DWORD WINAPI SUBAcceptThread(LPVOID completionPort);

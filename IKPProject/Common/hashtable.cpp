@@ -81,8 +81,6 @@ bool add_list_table(HASH_TABLE* table, const char* key)
 		return false;
 	}
 
-	strcpy_s(table->items[index].key, MAX_KEY_LEN, key);
-
 	LeaveCriticalSection(&table->cs);
 	return true;
 }
@@ -123,6 +121,7 @@ bool add_table_item(HASH_TABLE* table, const char* key, SOCKET sock)
 	}
 	LIST_ITEM newItem = { sock, NULL };
 	add_list_front(item->list, newItem);
+	table->count++;
 
 	LeaveCriticalSection(&table->cs);
 	return true;
@@ -202,6 +201,39 @@ bool has_key(HASH_TABLE* table, const char* key)
 	return true;
 }
 
+char* get_table_keys(HASH_TABLE* table)
+{
+	if (table == NULL)
+	{
+		printf("get_table_keys() failed: table is NULL\n");
+		return NULL;
+	}
+
+	EnterCriticalSection(&table->cs);
+
+	char* keys = (char*)malloc(sizeof(char) * MAX_KEY_LEN * table->count);
+	if (keys == NULL)
+	{
+		printf("get_table_keys() failed: out of memory\n");
+		LeaveCriticalSection(&table->cs);
+		return NULL;
+	}
+
+	int index = 0;
+	for (int i = 0; i < TABLE_SIZE; i++)
+	{
+		if (table->items[i].list != NULL)
+		{
+			strcpy_s(keys + index, MAX_KEY_LEN, table->items[i].key + '\n');
+			index += MAX_KEY_LEN;
+		}
+	}
+	// add null terminator
+	keys[index] = '\0';
+	LeaveCriticalSection(&table->cs);
+	return keys;
+}
+
 bool remove_table_item(HASH_TABLE* table, const char* key)
 {
 	if (table == NULL)
@@ -246,6 +278,8 @@ bool remove_table_item(HASH_TABLE* table, const char* key)
 		return false;
 	}
 
+	table->count--;
+
 	LeaveCriticalSection(&table->cs);
 	return true;
 }
@@ -263,18 +297,21 @@ bool free_hash_table(HASH_TABLE** table)
 		printf("free_hash_table() failed: table is NULL\n");
 		return false;
 	}
-
+	EnterCriticalSection(&(*table)->cs);
 	for (int i = 0; i < TABLE_SIZE; i++)
 	{
-		if (!free_list(&(*table)->items[i].list))
+		free((*table)->items[i].key);
+		if (!free_list(&((*table)->items[i].list)))
 		{
 			printf("free_hash_table() failed: free_list() failed\n");
 			return false;
 		}
 	}
-
+	LeaveCriticalSection(&(*table)->cs);
+	DeleteCriticalSection(&(*table)->cs);
 	free((*table)->items);
 	free(*table);
+	
 	*table = NULL;
 
 	return true;
@@ -289,6 +326,7 @@ void print_hash_table(HASH_TABLE* table)
 	}
 
 	printf("======== Hash Table ========\n");
+	printf("Count: %d\n\n", table->count);
 	for (int i = 0; i < TABLE_SIZE; i++)
 	{
 		if (strcmp(table->items[i].key, "\0") != 0) {

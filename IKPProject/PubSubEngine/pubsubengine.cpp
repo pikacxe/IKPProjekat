@@ -52,13 +52,16 @@ int main() {
 		return 1;
 	}
 
-
 	printf("Press any key to exit...\n");
 	getchar();
 
+	// Cleanup
 	CloseHandle(pubAcceptThreadHandle);
 	CloseHandle(subAcceptThreadHandle);
 	CloseHandle(args.completionPort);
+
+	// free unused memory
+	free_hash_table(&args.hashTable);
 	WSACleanup();
 	return 0;
 }

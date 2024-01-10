@@ -39,7 +39,7 @@ void add_list_front(LIST* list, LIST_ITEM data)
 		list->head = item;
 		list->tail = item;
 	}
-	else 
+	else
 	{
 		item->next = list->head;
 		list->head = item;
@@ -108,8 +108,8 @@ bool remove_from_list(LIST* list, int index)
 {
 	if (list == NULL)
 	{
-		printf("remove_list() failed: list is NULL\n");
-		return false;
+		printf("remove_list(): list is NULL\n");
+		return true;
 	}
 
 	if (index < 0 || index >= list->count)
@@ -139,7 +139,8 @@ bool remove_from_list(LIST* list, int index)
 	{
 		list->tail = prev;
 	}
-
+	shutdown(item->data, SD_BOTH);
+	closesocket(item->data);
 	free(item);
 	list->count--;
 
@@ -148,17 +149,14 @@ bool remove_from_list(LIST* list, int index)
 
 bool clear_list(LIST* list)
 {
-	if (list == NULL)
+	if (list != NULL)
 	{
-		printf("clear_list() failed: list is NULL\n");
-		return false;
-	}
-
-	while (list->count > 0)
-	{
-		if (!remove_from_list(list, 0))
+		while (list->count > 0)
 		{
-			printf("[WARN] clear_list() failed: failed to remove element from the list\n");
+			if (!remove_from_list(list, 0))
+			{
+				printf("[WARN] clear_list() failed: failed to remove element from the list\n");
+			}
 		}
 	}
 
@@ -169,14 +167,12 @@ bool free_list(LIST** list)
 {
 	if (list == NULL)
 	{
-		printf("free_list() failed: list is NULL\n");
-		return false;
+		return true;
 	}
 
 	if (*list == NULL)
 	{
-		printf("free_list() failed: list is NULL\n");
-		return false;
+		return true;
 	}
 
 	if (!clear_list(*list))

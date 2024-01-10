@@ -7,6 +7,11 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 	HANDLE completitionPort = (HANDLE)lpParam;
 
 	char* buffer = (char*)malloc(BUFF_SIZE);
+	if (buffer == NULL)
+	{
+		printf("malloc failed with error: %d\n", GetLastError());
+		return 1;
+	}
 
 	// information structures for the overlapped I/O operations
 	addrinfo* resultingAddress = NULL;
@@ -68,7 +73,7 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 		// create request
 		REQUEST* request = NULL;
 		// accept a client socket
-		acceptSocket = accept(listenSocket,NULL, NULL);
+		acceptSocket = accept(listenSocket, NULL, NULL);
 		if (acceptSocket == INVALID_SOCKET) {
 			printf("accept failed with error: %d\n", WSAGetLastError());
 			closesocket(listenSocket);
@@ -140,6 +145,10 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 	HANDLE completitionPort = (HANDLE)lpParam;
 
 	char* buffer = (char*)malloc(BUFF_SIZE);
+	if (buffer == NULL) {
+		printf("malloc failed with error: %d\n", GetLastError());
+		return 1;
+	}
 
 	// information structures for the overlapped I/O operations
 	addrinfo* resultingAddress = NULL;
@@ -201,7 +210,7 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 		// create request
 		REQUEST* request = NULL;
 		// accept a client socket
-		acceptSocket = accept(listenSocket,NULL, NULL);
+		acceptSocket = accept(listenSocket, NULL, NULL);
 		if (acceptSocket == INVALID_SOCKET) {
 			printf("accept failed with error: %d\n", WSAGetLastError());
 			closesocket(listenSocket);
@@ -289,6 +298,14 @@ DWORD WINAPI WorkerThread(LPVOID args) {
 		// Pub
 		if (request->type == SOCK_TYPE_PUB) {
 			PUB_INFO* pubInfo = (PUB_INFO*)ioData->Buffer;
+			if (strcmp(pubInfo->topic, "exit") == 0) {
+				printf("PUB client %u disconnected\n", request->socket);
+				shutdown(request->socket, SD_BOTH);
+				closesocket(request->socket);
+				GlobalFree(request);
+				GlobalFree(ioData);
+				continue;
+			}
 			printf("PUB client %u sent for \"%s\": %s\n", pubInfo->sock, pubInfo->topic, pubInfo->msg);
 			keyExists = has_key(hashTable, pubInfo->topic);
 			if (!keyExists) {
@@ -331,6 +348,39 @@ DWORD WINAPI WorkerThread(LPVOID args) {
 		}
 		// SUB
 		else if (request->type == SOCK_TYPE_SUB) {
+			if (strcmp(ioData->Buffer, "") == 0) {
+				continue;
+			}
+			if (strcmp(ioData->Buffer, "exit") == 0) {
+				printf("SUB client %u disconnected\n", request->socket);
+				shutdown(request->socket, SD_BOTH);
+				closesocket(request->socket);
+				GlobalFree(request);
+				GlobalFree(ioData);
+				continue;
+			}
+			if (strcmp(ioData->Buffer, "?") == 0) {
+				// send available topics
+				char* topics = get_table_keys(hashTable);
+				if (topics == NULL) {
+					printf("get_keys failed with error: %d\n", GetLastError());
+					return 1;
+				}
+				else {
+					ZeroMemory(&(ioData->Overlapped), sizeof(OVERLAPPED));
+					ioData->BytesRECV = 0;
+					ioData->DataBuf.len = BUFF_SIZE;
+					ioData->DataBuf.buf = topics;
+
+					if (WSASend(request->socket, &(ioData->DataBuf), 1, &sendBytes, 0, &(ioData->Overlapped), NULL) == SOCKET_ERROR) {
+						if (WSAGetLastError() != ERROR_IO_PENDING) {
+							printf("WSASend failed with error: %d\n", WSAGetLastError());
+							return 1;
+						}
+					}
+					continue;
+				}
+			}
 			printf("SUB client %u requesting  subscription to \"%s\"\n", request->socket, ioData->Buffer);
 			if (has_key(hashTable, ioData->Buffer)) {
 				if (!add_table_item(hashTable, ioData->Buffer, request->socket)) {

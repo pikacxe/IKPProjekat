@@ -37,6 +37,8 @@ int main()
 		return 1;
 	}
 
+	printf("Subscribed to topic \"%s\"\n", buffer);
+	printf("Receiving messages...\n\n");	
 	// receive messages
 	while (true) {
 		memset(buffer, 0, BUFF_SIZE);

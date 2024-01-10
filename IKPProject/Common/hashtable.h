@@ -15,6 +15,7 @@ typedef struct _HASH_TABLE
 {
 	CRITICAL_SECTION cs;
 	HASH_ITEM* items;
+	int count;
 } HASH_TABLE;
 
 /// <summary>
@@ -62,6 +63,13 @@ LIST* get_table_item(HASH_TABLE* table, const char* key);
 /// <param name="key"> - item key</param>
 /// <returns>True if table has item with specified key, otherwise false</returns>
 bool has_key(HASH_TABLE* table, const char* key);
+
+/// <summary>
+/// Get table keys
+/// </summary>
+/// <param name="table"> - source table</param>
+/// <returns>Table keys if table is not empty, otherwise NULL</returns>
+char* get_table_keys(HASH_TABLE* table);
 
 /// <summary>
 /// Remove item from table
