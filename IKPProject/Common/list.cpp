@@ -196,6 +196,10 @@ bool free_list(LIST** list)
 			free(item);
 			(*list)->count--;
 		}
+		free((*list)->head);
+		(*list)->head = NULL;
+		(*list)->tail = NULL;
+		(*list)->count = 0;
 		LeaveCriticalSection(&(*list)->cs);
 	}
 	DeleteCriticalSection(&(*list)->cs);
