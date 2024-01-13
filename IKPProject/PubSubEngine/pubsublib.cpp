@@ -62,11 +62,11 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 	printf("PUB server is listening on port %s\n", PUB_PORT_S);
 
 
+	IODATA* reqData = NULL;
+	REQUEST* request = NULL;
 	while (!cancelationToken) {
 
 		// accept a client socket
-		IODATA* reqData;
-		REQUEST* request;
 		acceptSocket = accept(listenSocket, NULL, NULL);
 		if (acceptSocket == INVALID_SOCKET) {
 			if (GetLastError() == 10004) {
@@ -122,6 +122,12 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 	printf("PubAccept thread cleanup...\n");
 	closesocket(listenSocket);
 	closesocket(acceptSocket);
+	if (reqData != NULL) {
+		GlobalFree(reqData);
+	}
+	if (request != NULL) {
+		GlobalFree(request);
+	}
 	WSACleanup();
 	printf("PubAccept thread cleanup done\n");
 	printf("PubAccept thread exiting...\n");
@@ -188,6 +194,8 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 
 	printf("SUB server is listening on port %s\n", SUB_PORT_S);
 
+	IODATA* reqData = NULL;
+	REQUEST* request = NULL;
 	while (!cancelationToken) {
 
 		// accept a client socket
@@ -201,8 +209,6 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 			break;
 		}
 
-		IODATA* reqData;
-		REQUEST* request;
 		printf("SUB client connected\n");
 
 		if ((reqData = (IODATA*)GlobalAlloc(GPTR, sizeof(IODATA))) == NULL) {
@@ -246,6 +252,12 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 	printf("SubAccept thread cleanup...\n");
 	closesocket(listenSocket);
 	closesocket(acceptSocket);
+	if (reqData != NULL) {
+		GlobalFree(reqData);
+	}
+	if (request != NULL) {
+		GlobalFree(request);
+	}
 	WSACleanup();
 	printf("SubAccept thread cleanup done\n");
 	printf("SubAccept thread exiting...\n");
@@ -352,6 +364,7 @@ DWORD WINAPI WorkerThread(LPVOID args) {
 			}
 		}
 	}
+	WSACleanup();
 	printf("Worker thread finished...\n");
 	return 0;
 

@@ -60,7 +60,7 @@ int main() {
 
 	cancelationToken = TRUE;
 	printf("Press any key to exit...\n");
-	//getchar();
+	getchar();
 
 	// Cleanup
 	CloseHandle(pubAcceptThreadHandle);
@@ -71,6 +71,8 @@ int main() {
 	free_hash_table(&args.hashTable);
 	free(args.hashTable);
 	WSACleanup();
+	printf("Wait for threads to finish\n");
+	Sleep(10000);
 	return 0;
 }
 
