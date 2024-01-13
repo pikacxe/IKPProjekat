@@ -75,29 +75,6 @@ int main()
 			printf("recv() failed with error: %d\n", WSAGetLastError());
 			break;
 		}
-		if (strcmp(buffer, "-") == 0)
-		{
-			printf("Topic does not exist\n");
-			printf("Enter topic: ");
-			if (fgets(buffer, MAX_TOPIC_LEN, stdin) == NULL)
-			{
-				printf("Failed to read topic\n");
-				break;
-			}
-			// remove newline character
-			if (buffer[strlen(buffer) - 1] == '\n')
-			{
-				buffer[strlen(buffer) - 1] = '\0';
-			}
-			//send new topic
-			if (send(sock, buffer, BUFF_SIZE, 0) == SOCKET_ERROR)
-			{
-				printf("send() failed with error: %d\n", WSAGetLastError());
-				closesocket(sock);
-				WSACleanup();
-				break;
-			}
-		}
 		// check if message is "exit"
 		else if (strcmp(buffer, "exit") == 0)
 		{
