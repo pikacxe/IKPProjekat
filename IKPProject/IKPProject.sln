@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Subscriber", "Subscriber\Su
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnitTests", "UnitTests\UnitTests.vcxproj", "{EC02324A-4D93-42FA-B9B5-23EDE9350933}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StressTest", "StressTest\StressTest.vcxproj", "{76FB8F80-A662-4AE0-A6A1-61B4210F80BA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -61,6 +63,14 @@ Global
 		{EC02324A-4D93-42FA-B9B5-23EDE9350933}.Release|x64.Build.0 = Release|x64
 		{EC02324A-4D93-42FA-B9B5-23EDE9350933}.Release|x86.ActiveCfg = Release|Win32
 		{EC02324A-4D93-42FA-B9B5-23EDE9350933}.Release|x86.Build.0 = Release|Win32
+		{76FB8F80-A662-4AE0-A6A1-61B4210F80BA}.Debug|x64.ActiveCfg = Debug|x64
+		{76FB8F80-A662-4AE0-A6A1-61B4210F80BA}.Debug|x64.Build.0 = Debug|x64
+		{76FB8F80-A662-4AE0-A6A1-61B4210F80BA}.Debug|x86.ActiveCfg = Debug|Win32
+		{76FB8F80-A662-4AE0-A6A1-61B4210F80BA}.Debug|x86.Build.0 = Debug|Win32
+		{76FB8F80-A662-4AE0-A6A1-61B4210F80BA}.Release|x64.ActiveCfg = Release|x64
+		{76FB8F80-A662-4AE0-A6A1-61B4210F80BA}.Release|x64.Build.0 = Release|x64
+		{76FB8F80-A662-4AE0-A6A1-61B4210F80BA}.Release|x86.ActiveCfg = Release|Win32
+		{76FB8F80-A662-4AE0-A6A1-61B4210F80BA}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
