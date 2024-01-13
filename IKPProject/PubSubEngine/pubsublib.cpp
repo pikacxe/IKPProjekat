@@ -116,6 +116,8 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 	}
 	// thread cleanup
 	printf("PubAccept thread cleanup...\n");
+	shutdown(acceptSocket, SD_BOTH);
+	shutdown(listenSocket, SD_BOTH);
 	closesocket(listenSocket);
 	closesocket(acceptSocket);
 	if (reqData != NULL) {
@@ -250,6 +252,8 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 	}
 	// thread cleanup
 	printf("SubAccept thread cleanup...\n");
+	shutdown(acceptSocket, SD_BOTH);
+	shutdown(listenSocket, SD_BOTH);
 	closesocket(listenSocket);
 	closesocket(acceptSocket);
 	if (reqData != NULL) {

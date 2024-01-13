@@ -5,8 +5,8 @@
 
 void stress_tests();
 void start_server();
-void start_subscriber();
-void start_publisher();
+void start_subscriber(int min);
+void start_publisher(int min);
 int pub_test(char topic[], char msg[], int num);
 
 int main() {
@@ -25,8 +25,8 @@ void stress_tests() {
 	while (1) {
 		char option;
 		printf("Choose an option:\n");
-		printf("1. 1 publisher and 100 messages\n");
-		printf("2. publishers and subscribers\n");
+		printf("1. 1 publisher and messages\n");
+		printf("2. Connect publishers and subscribers\n");
 		printf("s. Start subscriber\n");
 		printf("p. Start publisher\n");
 		printf("q. Quit\n");
@@ -52,20 +52,29 @@ void stress_tests() {
 
 		}
 		else if (option == '2') {
-			printf("Enter number of publishers and subscribers:");
-			int num;
-			scanf_s("%d", &num);
+			int pubs;
+			int subs;
+			printf("Enter number of publishers:");
+			scanf_s("%d", &pubs);
 			fflush(stdin);
-			for (int i = 0; i < num; i++) {
-				start_subscriber();
-				start_publisher();
+			printf("Enter number of subscribers:");
+			scanf_s("%d", &subs);
+			fflush(stdin);
+			for (int i = 0; i < pubs; i++) {
+				printf("[%d] ", i + 1);
+				start_publisher(TRUE);
+			}
+			printf("\n\n");
+			for (int i = 0; i < subs; i++) {
+				printf("[%d] ", i + 1);
+				start_subscriber(TRUE);
 			}
 		}
 		else if (option == 's') {
-			start_subscriber();
+			start_subscriber(FALSE);
 		}
 		else if (option == 'p') {
-			start_publisher();
+			start_publisher(FALSE);
 		}
 		else {
 			printf("Invalid option\n\n");
@@ -115,23 +124,45 @@ void start_server() {
 	printf("Server started\n");
 }
 
-void start_publisher() {
-	const char* publisher_exe = "cd C:\\Users\\lix20\\Desktop\\IKP Projekat\\IKPProject\\x64\\Debug\\ && start /i Publisher.exe";
-	if (system(publisher_exe) == -1)
-	{
-		printf("Failed to launch publisher\n");
-		return;
+void start_publisher(int min) {
+	if (min == TRUE) {
+		const char* publisher_exe = "cd C:\\Users\\lix20\\Desktop\\IKP Projekat\\IKPProject\\x64\\Debug\\ && start /i /min Publisher.exe";
+		if (system(publisher_exe) == -1)
+		{
+			printf("Failed to launch publisher\n");
+			return;
+		}
+		printf("Publisher started\n");
 	}
-	printf("Publisher started\n");
+	else {
+		const char* publisher_exe = "cd C:\\Users\\lix20\\Desktop\\IKP Projekat\\IKPProject\\x64\\Debug\\ && start /i Publisher.exe";
+		if (system(publisher_exe) == -1)
+		{
+			printf("Failed to launch publisher\n");
+			return;
+		}
+		printf("Publisher started\n");
+	}
 }
 
 
-void start_subscriber() {
-	const char* subscriber_exe = "cd C:\\Users\\lix20\\Desktop\\IKP Projekat\\IKPProject\\x64\\Debug\\ && start /i Subscriber.exe";
-	if (system(subscriber_exe) == -1)
-	{
-		printf("Failed to launch subscriber\n");
-		return;
+void start_subscriber(int min) {
+	if (min == TRUE) {
+		const char* subscriber_exe = "cd C:\\Users\\lix20\\Desktop\\IKP Projekat\\IKPProject\\x64\\Debug\\ && start /i /min Subscriber.exe";
+		if (system(subscriber_exe) == -1)
+		{
+			printf("Failed to launch subscriber\n");
+			return;
+		}
+		printf("Subscriber started\n");
 	}
-	printf("Subscriber started\n");
+	else {
+		const char* subscriber_exe = "cd C:\\Users\\lix20\\Desktop\\IKP Projekat\\IKPProject\\x64\\Debug\\ && start /i Subscriber.exe";
+		if (system(subscriber_exe) == -1)
+		{
+			printf("Failed to launch subscriber\n");
+			return;
+		}
+		printf("Subscriber started\n");
+	}
 }

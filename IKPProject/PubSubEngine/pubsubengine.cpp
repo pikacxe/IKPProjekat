@@ -93,6 +93,7 @@ void menu(HASH_TABLE* table) {
 			print_hash_table(table);
 		}
 		else if (option == 'q') {
+			fflush(stdin);
 			break;
 		}
 		else {
