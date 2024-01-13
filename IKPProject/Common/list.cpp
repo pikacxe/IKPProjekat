@@ -12,6 +12,7 @@ LIST* init_list()
 	list->head = NULL;
 	list->tail = NULL;
 	list->count = 0;
+	InitializeCriticalSection(&list->cs);
 
 	return list;
 }
@@ -23,7 +24,7 @@ void add_list_front(LIST* list, LIST_ITEM data)
 		printf("add_list_front() failed: list is NULL\n");
 		return;
 	}
-
+	EnterCriticalSection(&list->cs);
 	LIST_ITEM* item = (LIST_ITEM*)malloc(sizeof(LIST_ITEM));
 	if (item == NULL)
 	{
@@ -46,6 +47,7 @@ void add_list_front(LIST* list, LIST_ITEM data)
 	}
 
 	list->count++;
+	LeaveCriticalSection(&list->cs);
 }
 
 
@@ -57,6 +59,7 @@ void add_list_back(LIST* list, LIST_ITEM data)
 		return;
 	}
 
+	EnterCriticalSection(&list->cs);
 	LIST_ITEM* item = (LIST_ITEM*)malloc(sizeof(LIST_ITEM));
 	if (item == NULL)
 	{
@@ -79,6 +82,7 @@ void add_list_back(LIST* list, LIST_ITEM data)
 	}
 
 	list->count++;
+	LeaveCriticalSection(&list->cs);
 }
 
 LIST_ITEM* get_list_item(LIST* list, int index)
@@ -118,6 +122,7 @@ bool remove_from_list(LIST* list, int index)
 		return false;
 	}
 
+	EnterCriticalSection(&list->cs);
 	LIST_ITEM* item = list->head;
 	LIST_ITEM* prev = NULL;
 	for (int i = 0; i < index; i++)
@@ -139,10 +144,11 @@ bool remove_from_list(LIST* list, int index)
 	{
 		list->tail = prev;
 	}
-	shutdown(item->data, SD_BOTH);
 	closesocket(item->data);
 	free(item);
+	item = NULL;
 	list->count--;
+	LeaveCriticalSection(&list->cs);
 
 	return true;
 }
@@ -151,6 +157,7 @@ bool clear_list(LIST* list)
 {
 	if (list != NULL)
 	{
+		EnterCriticalSection(&list->cs);
 		while (list->count > 0)
 		{
 			if (!remove_from_list(list, 0))
@@ -158,6 +165,7 @@ bool clear_list(LIST* list)
 				printf("[WARN] clear_list() failed: failed to remove element from the list\n");
 			}
 		}
+		LeaveCriticalSection(&list->cs);
 	}
 
 	return true;
@@ -174,16 +182,18 @@ bool free_list(LIST** list)
 	{
 		return true;
 	}
-
-	if (!clear_list(*list))
+	EnterCriticalSection(&(*list)->cs);
+	while ((*list)->head != (*list)->tail)
 	{
-		printf("free_list() failed: clear_list() failed\n");
-		return false;
+		LIST_ITEM* item = (*list)->head;
+		(*list)->head = item->next;
+		shutdown(item->data, SD_BOTH);
+		closesocket(item->data);
+		free(item);
+		(*list)->count--;
 	}
-
-	free(*list);
-	*list = NULL;
-
+	LeaveCriticalSection(&(*list)->cs);
+	DeleteCriticalSection(&(*list)->cs);
 	return true;
 }
 
@@ -196,7 +206,7 @@ void print_list(LIST* list)
 		return;
 	}
 
-	if (list->count == 0)
+	if (list->count <= 0)
 	{
 		printf("print_list(): list is empty\n");
 		return;
@@ -206,7 +216,7 @@ void print_list(LIST* list)
 	printf("List count: %d\n[", list->count);
 	while (item != NULL)
 	{
-		printf("Socket: %lu", item->data);
+		printf("Socket: %d, ", item->data);
 		item = item->next;
 	}
 	printf("]\n");

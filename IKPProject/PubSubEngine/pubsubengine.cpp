@@ -1,14 +1,18 @@
 #include "pubsublib.h"
 
+void menu(HASH_TABLE* table);
+
 int main() {
+	printf("Preparing PubSubEngine...\n\n");
 	SYSTEM_INFO sysinfo;
 	GetSystemInfo(&sysinfo);
 	int numCPU = sysinfo.dwNumberOfProcessors;
 	printf("Number of CPUs: %d\n", numCPU);
 	HANDLE threadHandle;
 	THR_ARGS args;
-
+	cancelationToken = FALSE;
 	args.hashTable = init_hash_table();
+
 	if (args.hashTable == NULL) {
 		printf("Error creating hash table\n");
 		return 1;
@@ -33,9 +37,8 @@ int main() {
 		}
 		CloseHandle(threadHandle);
 	}
-
 	// Create publisher accept thread
-	HANDLE pubAcceptThreadHandle = CreateThread(NULL, 0, PUBAcceptThread, args.completionPort, 0, NULL);
+	HANDLE pubAcceptThreadHandle = CreateThread(NULL, 0, PUBAcceptThread, (LPVOID)&args, 0, NULL);
 	if (pubAcceptThreadHandle == NULL) {
 		printf("Error creating publisher accept thread\n");
 		WSACleanup();
@@ -44,7 +47,7 @@ int main() {
 	}
 
 	// Create subscriber accept thread
-	HANDLE subAcceptThreadHandle = CreateThread(NULL, 0, SUBAcceptThread, args.completionPort, 0, NULL);
+	HANDLE subAcceptThreadHandle = CreateThread(NULL, 0, SUBAcceptThread, (LPVOID)&args, 0, NULL);
 	if (subAcceptThreadHandle == NULL) {
 		printf("Error creating subscriber accept thread\n");
 		WSACleanup();
@@ -52,6 +55,10 @@ int main() {
 		return 1;
 	}
 
+	// Wait for user to exit
+	menu(args.hashTable);
+
+	cancelationToken = TRUE;
 	printf("Press any key to exit...\n");
 	getchar();
 
@@ -62,6 +69,31 @@ int main() {
 
 	// free unused memory
 	free_hash_table(&args.hashTable);
+	free(args.hashTable);
 	WSACleanup();
 	return 0;
+}
+
+
+void menu(HASH_TABLE* table) {
+	while (1) {
+		char option;
+		printf("Options:\n");
+		printf("1. Print hashtable\n");
+		printf("q. Quit\n");
+
+		printf("Enter option: ");
+		option = getchar();
+		getchar();
+
+		if (option == '1') {
+			print_hash_table(table);
+		}
+		else if (option == 'q') {
+			break;
+		}
+		else {
+			printf("Invalid option\n");
+		}
+	}
 }

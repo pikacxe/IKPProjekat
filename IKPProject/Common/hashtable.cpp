@@ -8,6 +8,7 @@ HASH_TABLE* init_hash_table()
 		printf("init_hash_table() failed: out of memory\n");
 		return NULL;
 	}
+	table->count = 0;
 
 	table->items = (HASH_ITEM*)malloc(sizeof(HASH_ITEM) * TABLE_SIZE);
 	if (table->items == NULL)
@@ -19,28 +20,33 @@ HASH_TABLE* init_hash_table()
 	for (int i = 0; i < TABLE_SIZE; i++)
 	{
 		table->items[i].list = NULL;
-		table->items[i].key = (char*)malloc(sizeof(char) * MAX_KEY_LEN);
+		table->items[i].key = NULL;
 	}
 	InitializeCriticalSection(&table->cs);
 
 	return table;
 }
 
-int hash(const char* key)
+unsigned int hash(const char* key)
 {
 	if (key == NULL)
 	{
 		printf("hash() failed: key is NULL\n");
 		return -1;
 	}
-
-	int hash = 0;
-	for (int i = 0; i < strlen(key); i++)
+	if (strlen(key) > MAX_KEY_LEN)
 	{
-		hash += key[i];
+		printf("hash() failed: key is too long\n");
+		return -1;
 	}
 
-	return hash % TABLE_SIZE;
+	unsigned int hash_value = 0;
+
+	while (*key != '\0') {
+		hash_value = (hash_value << 5) + *key++;
+	}
+
+	return hash_value % TABLE_SIZE;
 }
 
 bool add_list_table(HASH_TABLE* table, const char* key)
@@ -80,9 +86,15 @@ bool add_list_table(HASH_TABLE* table, const char* key)
 		LeaveCriticalSection(&table->cs);
 		return false;
 	}
-	
-	strcpy_s(table->items[index].key, MAX_KEY_LEN, key);
+	table->items[index].key = (char*)malloc(strlen(key) + 1);
+	if (table->items[index].key == NULL) {
+		printf("add_list_table() failed: out of memory\n");
+		LeaveCriticalSection(&table->cs);
+		return false;
+	}
 
+	strcpy_s(table->items[index].key, strlen(key) + 1, key);
+	table->count++;
 	LeaveCriticalSection(&table->cs);
 	return true;
 }
@@ -123,7 +135,6 @@ bool add_table_item(HASH_TABLE* table, const char* key, SOCKET sock)
 	}
 	LIST_ITEM newItem = { sock, NULL };
 	add_list_front(item->list, newItem);
-	table->count++;
 
 	LeaveCriticalSection(&table->cs);
 	return true;
@@ -204,38 +215,43 @@ bool has_key(HASH_TABLE* table, const char* key)
 	return true;
 }
 
-char* get_table_keys(HASH_TABLE* table)
-{
+void get_table_keys(HASH_TABLE* table, TOPIC_INFO* info) {
 	if (table == NULL)
 	{
 		printf("get_table_keys() failed: table is NULL\n");
-		return NULL;
+		return;
 	}
-
-	EnterCriticalSection(&table->cs);
-
-	char* keys = (char*)malloc(sizeof(char) * MAX_KEY_LEN * table->count);
-	if (keys == NULL)
-	{
+	if (table->count == 0) {
+		printf("get_table_keys(): table is empty\n");
+		info->count = 0;
+		return;
+	}
+	if (info == NULL) {
+		printf("get_table_keys() failed: info is NULL\n");
+		return;
+	}
+	info->count = 0;
+	info->topics = (char**)malloc(sizeof(char*) * table->count);
+	if (info->topics == NULL) {
 		printf("get_table_keys() failed: out of memory\n");
-		LeaveCriticalSection(&table->cs);
-		return NULL;
+		return;
 	}
-
-	int index = 0;
-	for (int i = 0; i < TABLE_SIZE; i++)
-	{
-		if (table->items[i].list != NULL)
-		{
-			strcpy_s(keys + index, MAX_KEY_LEN, table->items[i].key + '\n');
-			index += MAX_KEY_LEN;
+	EnterCriticalSection(&table->cs);
+	for (int i = 0; i < TABLE_SIZE; i++) {
+		if (table->items[i].key != NULL) {
+			info->topics[info->count] = (char*)malloc(sizeof(char) * MAX_KEY_LEN);
+			if (info->topics[info->count] == NULL) {
+				printf("get_table_keys() failed: out of memory\n");
+				LeaveCriticalSection(&table->cs);
+				return;
+			}
+			strcpy_s(info->topics[info->count], strlen(table->items[i].key) + 1, table->items[i].key);
+			info->count++;
 		}
 	}
-	// add null terminator
-	keys[index] = '\0';
 	LeaveCriticalSection(&table->cs);
-	return keys;
 }
+
 
 bool remove_table_item(HASH_TABLE* table, const char* key)
 {
@@ -291,30 +307,45 @@ bool free_hash_table(HASH_TABLE** table)
 {
 	if (table == NULL)
 	{
-		printf("free_hash_table() failed: table is NULL\n");
-		return false;
+		printf("free_hash_table(): table is NULL\n");
+		return true;
 	}
 
 	if (*table == NULL)
 	{
-		printf("free_hash_table() failed: table is NULL\n");
-		return false;
+		printf("free_hash_table(): table is NULL\n");
+		return true;
 	}
-	EnterCriticalSection(&(*table)->cs);
+	HASH_TABLE* temp = *table;
+	if (temp->items == NULL)
+	{
+		printf("free_hash_table(): table->items is NULL\n");
+		return true;
+	}
+	EnterCriticalSection(&temp->cs);
 	for (int i = 0; i < TABLE_SIZE; i++)
 	{
-		free((*table)->items[i].key);
-		if (!free_list(&((*table)->items[i].list)))
+		if (temp->items[i].list != NULL)
 		{
-			printf("free_hash_table() failed: free_list() failed\n");
-			return false;
+			if (!free_list(&temp->items[i].list))
+			{
+				printf("free_hash_table(): free_list() failed\n");
+				LeaveCriticalSection(&temp->cs);
+				return false;
+			}
+		}
+		if (temp->items[i].key != NULL)
+		{
+			free(temp->items[i].key);
+			temp->items[i].key = NULL;
 		}
 	}
-	LeaveCriticalSection(&(*table)->cs);
-	DeleteCriticalSection(&(*table)->cs);
-	free((*table)->items);
-	free(*table);
-	
+	LeaveCriticalSection(&temp->cs);
+	DeleteCriticalSection(&temp->cs);
+
+	free(temp->items);
+	temp->items = NULL;
+	free(temp);
 	*table = NULL;
 
 	return true;
@@ -324,7 +355,7 @@ void print_hash_table(HASH_TABLE* table)
 {
 	if (table == NULL)
 	{
-		printf("print_hashtable() failed: table is NULL\n");
+		printf("print_hashtable(): table is NULL\n");
 		return;
 	}
 
@@ -332,7 +363,7 @@ void print_hash_table(HASH_TABLE* table)
 	printf("Count: %d\n\n", table->count);
 	for (int i = 0; i < TABLE_SIZE; i++)
 	{
-		if (strcmp(table->items[i].key, "\0") != 0) {
+		if (table->items[i].key != NULL) {
 			printf("Index: %d\n", i);
 			printf("Key: %s\n", table->items[i].key);
 			printf("List:\n");

@@ -3,6 +3,7 @@
 #include "../Common/common.h"
 #include "../Common/hashtable.h"
 #include <WS2tcpip.h>
+#include <Windows.h>
 
 enum SockType {
 	SOCK_TYPE_PUB,

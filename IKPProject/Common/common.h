@@ -4,6 +4,7 @@
 
 #include <WinSock2.h>
 #include <stdio.h>
+#include <stdlib.h>
 #pragma comment(lib, "ws2_32.lib")
 
 
@@ -16,6 +17,7 @@
 #define PUB_PORT 7777
 #define SUB_PORT 8888
 
+static BOOL cancelationToken = FALSE;
 
 typedef struct _PUB_INFO
 {
@@ -24,13 +26,11 @@ typedef struct _PUB_INFO
 	SOCKET sock;
 }PUB_INFO;
 
-typedef struct _SUB_INFO
+typedef struct _TOPIC_INFO
 {
-	char topic[MAX_TOPIC_LEN];
-	SOCKET sock;
-}SUB_INFO;
-
-
+	char** topics;
+	int count;
+}TOPIC_INFO;
 
 /// <summary>
 /// connect to PubSub engine

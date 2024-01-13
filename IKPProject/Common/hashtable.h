@@ -1,6 +1,7 @@
 #pragma once
 #include "string.h"
 #include "list.h"
+#include "common.h"
 
 #define TABLE_SIZE 1000
 #define MAX_KEY_LEN 128 + 1
@@ -18,6 +19,7 @@ typedef struct _HASH_TABLE
 	int count;
 } HASH_TABLE;
 
+
 /// <summary>
 /// Initialize hash table
 /// </summary>
@@ -25,11 +27,11 @@ typedef struct _HASH_TABLE
 HASH_TABLE* init_hash_table();
 
 /// <summary>
-/// Hash function
+/// Hash function using djb2 algorithm
 /// </summary>
 /// <param name="key"> - key to hash</param>
 /// <returns>Hashed key</returns>
-int hash(const char* key);
+unsigned int hash(const char* key);
 
 /// <summary>
 /// Add item to hash table
@@ -69,7 +71,7 @@ bool has_key(HASH_TABLE* table, const char* key);
 /// </summary>
 /// <param name="table"> - source table</param>
 /// <returns>Table keys if table is not empty, otherwise NULL</returns>
-char* get_table_keys(HASH_TABLE* table);
+void get_table_keys(HASH_TABLE* table, TOPIC_INFO* info);
 
 /// <summary>
 /// Remove item from table

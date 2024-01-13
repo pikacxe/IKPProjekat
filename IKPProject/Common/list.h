@@ -19,6 +19,7 @@ typedef struct _LIST
 {
 	LIST_ITEM* head;
 	LIST_ITEM* tail;
+	CRITICAL_SECTION cs;
 	int count;
 } LIST;
 

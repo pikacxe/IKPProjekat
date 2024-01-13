@@ -1,17 +1,9 @@
 #pragma once
 #include "pubsublib.h"
 
-
-
 DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
-	HANDLE completitionPort = (HANDLE)lpParam;
-
-	char* buffer = (char*)malloc(BUFF_SIZE);
-	if (buffer == NULL)
-	{
-		printf("malloc failed with error: %d\n", GetLastError());
-		return 1;
-	}
+	THR_ARGS* thrArgs = (THR_ARGS*)lpParam;
+	HANDLE completitionPort = thrArgs->completionPort;
 
 	// information structures for the overlapped I/O operations
 	addrinfo* resultingAddress = NULL;
@@ -69,26 +61,45 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 
 	printf("PUB server is listening on port %s\n", PUB_PORT_S);
 
-	while (true) {
-		// create request
-		REQUEST* request = NULL;
+	IODATA* reqData = NULL;
+	REQUEST* request = NULL;
+
+	while (!cancelationToken) {
+
+		request = NULL;
 		// accept a client socket
 		acceptSocket = accept(listenSocket, NULL, NULL);
 		if (acceptSocket == INVALID_SOCKET) {
+			if (GetLastError() != WSAEINTR) {
+				printf("Request to cancel thread received\n");
+				break;
+			}
 			printf("accept failed with error: %d\n", WSAGetLastError());
-			closesocket(listenSocket);
-			WSACleanup();
-			return 1;
+			break;
 		}
 		printf("PUB client connected\n");
+
+		TOPIC_INFO topicInfo;
+		topicInfo.count = 0;
+		get_table_keys(thrArgs->hashTable, &topicInfo);
+
+		if (send(acceptSocket, (char*)&topicInfo, sizeof(TOPIC_INFO), 0) == SOCKET_ERROR) {
+			printf("send() failed with error: %d\n", WSAGetLastError());
+			break;
+		}
+
+		if (topicInfo.count > 0) {
+			// free unsued memory
+			for (int i = 0; i < topicInfo.count; i++) {
+				free(topicInfo.topics[i]);
+			}
+			free(topicInfo.topics);
+		}
 
 		if ((request = (REQUEST*)GlobalAlloc(GPTR, sizeof(REQUEST))) == NULL)
 		{
 			printf("GlobalAlloc failed with error: %d\n", GetLastError());
-			closesocket(listenSocket);
-			closesocket(acceptSocket);
-			WSACleanup();
-			return 1;
+			break;
 		}
 
 		// create a new client
@@ -98,23 +109,15 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 		if (CreateIoCompletionPort((HANDLE)acceptSocket, completitionPort, (ULONG_PTR)request, 0) == NULL)
 		{
 			printf("CreateIoCompletionPort failed with error: %d\n", GetLastError());
-			closesocket(listenSocket);
-			closesocket(acceptSocket);
-			GlobalFree(request);
-			WSACleanup();
-			return 1;
+			break;
 		}
 
-		IODATA* reqData = NULL;
+		reqData = NULL;
 
 		if ((reqData = (IODATA*)GlobalAlloc(GPTR, sizeof(IODATA))) == NULL)
 		{
 			printf("GlobalAlloc failed with error: %d\n", GetLastError());
-			closesocket(listenSocket);
-			closesocket(acceptSocket);
-			GlobalFree(request);
-			WSACleanup();
-			return 1;
+			break;
 		}
 
 		ZeroMemory(&(reqData->Overlapped), sizeof(OVERLAPPED));
@@ -130,25 +133,25 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 		if (WSARecv(acceptSocket, &(reqData->DataBuf), 1, &RecvBytes, &Flags, &(reqData->Overlapped), NULL) == SOCKET_ERROR) {
 			if (WSAGetLastError() != ERROR_IO_PENDING) {
 				printf("WSARecv failed with error: %d\n", WSAGetLastError());
-				closesocket(listenSocket);
-				closesocket(acceptSocket);
-				GlobalFree(request);
-				GlobalFree(reqData);
-				WSACleanup();
-				return 1;
+				break;
 			}
 		}
 	}
+	// thread cleanup
+	printf("PubAccept thread cleanup...\n");
+	closesocket(listenSocket);
+	closesocket(acceptSocket);
+	WSACleanup();
+	GlobalFree(request);
+	GlobalFree(reqData);
+	printf("PubAccept thread cleanup done\n");
+	printf("PubAccept thread exiting...\n");
+	return 0;
 }
 
 DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
-	HANDLE completitionPort = (HANDLE)lpParam;
-
-	char* buffer = (char*)malloc(BUFF_SIZE);
-	if (buffer == NULL) {
-		printf("malloc failed with error: %d\n", GetLastError());
-		return 1;
-	}
+	THR_ARGS* thrArgs = (THR_ARGS*)lpParam;
+	HANDLE completitionPort = thrArgs->completionPort;
 
 	// information structures for the overlapped I/O operations
 	addrinfo* resultingAddress = NULL;
@@ -206,25 +209,44 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 
 	printf("SUB server is listening on port %s\n", SUB_PORT_S);
 
-	while (true) {
-		// create request
-		REQUEST* request = NULL;
+	IODATA* reqData = NULL;
+	REQUEST* request = NULL;
+
+	while (!cancelationToken) {
+
 		// accept a client socket
 		acceptSocket = accept(listenSocket, NULL, NULL);
 		if (acceptSocket == INVALID_SOCKET) {
+			if (GetLastError() != WSAEINTR) {
+				printf("Request to cancel thread received\n");
+				break;
+			}
 			printf("accept failed with error: %d\n", WSAGetLastError());
-			closesocket(listenSocket);
-			WSACleanup();
-			return 1;
+			break;
 		}
 		printf("SUB client connected\n");
+
+		TOPIC_INFO topicInfo;
+		topicInfo.count = 0;
+		get_table_keys(thrArgs->hashTable, &topicInfo);
+
+		if (send(acceptSocket, (char*)&topicInfo, sizeof(TOPIC_INFO), 0) == SOCKET_ERROR) {
+			printf("send() failed with error: %d\n", WSAGetLastError());
+			break;
+		}
+
+		if (topicInfo.count > 0) {
+			// free unsued memory
+			for (int i = 0; i < topicInfo.count; i++) {
+				free(topicInfo.topics[i]);
+			}
+			free(topicInfo.topics);
+		}
 
 		if ((request = (REQUEST*)GlobalAlloc(GPTR, sizeof(REQUEST))) == NULL)
 		{
 			printf("GlobalAlloc failed with error: %d\n", GetLastError());
-			closesocket(listenSocket);
-			WSACleanup();
-			return 1;
+			break;
 		}
 
 		// create a new client
@@ -234,23 +256,15 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 		if (CreateIoCompletionPort((HANDLE)acceptSocket, completitionPort, (ULONG_PTR)request, 0) == NULL)
 		{
 			printf("CreateIoCompletionPort failed with error: %d\n", GetLastError());
-			closesocket(listenSocket);
-			closesocket(acceptSocket);
-			GlobalFree(request);
-			WSACleanup();
-			return 1;
+			break;
 		}
 
-		IODATA* reqData = NULL;
+		reqData = NULL;
 
 		if ((reqData = (IODATA*)GlobalAlloc(GPTR, sizeof(IODATA))) == NULL)
 		{
 			printf("GlobalAlloc failed with error: %d\n", GetLastError());
-			closesocket(listenSocket);
-			closesocket(acceptSocket);
-			GlobalFree(request);
-			WSACleanup();
-			return 1;
+			break;
 		}
 
 		ZeroMemory(&(reqData->Overlapped), sizeof(OVERLAPPED));
@@ -266,54 +280,57 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 		if (WSARecv(acceptSocket, &(reqData->DataBuf), 1, &RecvBytes, &Flags, &(reqData->Overlapped), NULL) == SOCKET_ERROR) {
 			if (WSAGetLastError() != ERROR_IO_PENDING) {
 				printf("WSARecv failed with error: %d\n", WSAGetLastError());
-				closesocket(listenSocket);
-				closesocket(acceptSocket);
-				GlobalFree(request);
-				GlobalFree(reqData);
-				WSACleanup();
-				return 1;
+				break;
 			}
 		}
 	}
+	// thread cleanup
+	printf("SubAccept thread cleanup...\n");
+	closesocket(listenSocket);
+	closesocket(acceptSocket);
+	WSACleanup();
+	GlobalFree(request);
+	GlobalFree(reqData);
+	printf("SubAccept thread cleanup done\n");
+	printf("SubAccept thread exiting...\n");
+	return 0;
 }
 
 DWORD WINAPI WorkerThread(LPVOID args) {
-	HANDLE completionPort = ((THR_ARGS*)args)->completionPort;
-	HASH_TABLE* hashTable = ((THR_ARGS*)args)->hashTable;
+	THR_ARGS* thrArgs = (THR_ARGS*)args;
+	HANDLE completionPort = thrArgs->completionPort;
+	HASH_TABLE* hashTable = thrArgs->hashTable;
 	DWORD bytesTransferred;
-	REQUEST* request;
-	IODATA* ioData;
+	REQUEST* request = NULL;
+	IODATA* ioData = NULL;
 	DWORD sendBytes, recvBytes;
 	DWORD Flags;
-	LIST* subs;
+	LIST* subs = NULL;
 	bool keyExists;
 
 
-	while (true) {
+	while (!cancelationToken) {
 		if (GetQueuedCompletionStatus(completionPort, &bytesTransferred, (PULONG_PTR)&request, (LPOVERLAPPED*)&ioData, INFINITE) == 0) {
 			printf("GetQueuedCompletionStatus failed with error: %d\n", GetLastError());
-			return 1;
+			break;
 		}
-
+		// client disconnected
+		if (bytesTransferred == 0) {
+			printf("Client %u disconnected\n", (int)request->socket);
+			closesocket(request->socket);
+			break;
+		}
 		// Pub
 		if (request->type == SOCK_TYPE_PUB) {
 			PUB_INFO* pubInfo = (PUB_INFO*)ioData->Buffer;
-			if (strcmp(pubInfo->topic, "exit") == 0) {
-				printf("PUB client %u disconnected\n", request->socket);
-				shutdown(request->socket, SD_BOTH);
-				closesocket(request->socket);
-				GlobalFree(request);
-				GlobalFree(ioData);
-				continue;
-			}
-			printf("PUB client %u sent for \"%s\": %s\n", pubInfo->sock, pubInfo->topic, pubInfo->msg);
+			printf("PUB client %u sent for \"%s\": %s\n", (int)pubInfo->sock, pubInfo->topic, pubInfo->msg);
 			keyExists = has_key(hashTable, pubInfo->topic);
 			if (!keyExists) {
 				// create topic
 				printf("Topic \"%s\" does not exist, creating...\n", pubInfo->topic);
 				if (!add_list_table(hashTable, pubInfo->topic)) {
-					printf("add_list_table failed with error: %d\n", GetLastError());
-					return 1;
+					printf("add_list_table failed");
+					continue;
 				}
 				else {
 					printf("Topic \"%s\" created\n", pubInfo->topic);
@@ -321,75 +338,37 @@ DWORD WINAPI WorkerThread(LPVOID args) {
 			}
 			else {
 				if ((subs = get_table_item(hashTable, pubInfo->topic)) == NULL) {
-					printf("get_table_item failed with error: %d\n", GetLastError());
-					return 1;
+					printf("get_table_item failed");
+					continue;
 				}
 				else {
-					printf("Topic \"%s\" exists, sending to subscribers...\n", pubInfo->topic);
-					LIST_ITEM* sub = subs->head;
-					while (sub != NULL) {
-						// send to all subscribers
-						Flags = 0;
-						recvBytes = 0;
-						sendBytes = strlen(pubInfo->msg) + 1;
-						ioData->BytesRECV = 0;
-						ioData->DataBuf.len = sendBytes;
-						ioData->DataBuf.buf = pubInfo->msg;
-						if (send(sub->data, pubInfo->msg, sendBytes, 0) == SOCKET_ERROR) {
-							if (WSAGetLastError() != ERROR_IO_PENDING) {
-								printf("WSASend failed with error: %d\n", WSAGetLastError());
-								return 1;
-							}
+					if (subs->count > 0) {
+						printf("Topic \"%s\" exists, sending to subscribers...\n", pubInfo->topic);
+						LIST_ITEM* sub = subs->head;
+						while (sub != NULL) {
+							// send to all subscribers
+							sendBytes = strlen(pubInfo->msg) + 1;
+							ioData->BytesRECV = 0;
+							ioData->DataBuf.len = sendBytes;
+							ioData->DataBuf.buf = pubInfo->msg;
+							send(sub->data, pubInfo->msg, sendBytes, 0);
+							sub = sub->next;
 						}
-						sub = sub->next;
 					}
 				}
 			}
 		}
 		// SUB
 		else if (request->type == SOCK_TYPE_SUB) {
-			if (strcmp(ioData->Buffer, "") == 0) {
-				continue;
-			}
-			if (strcmp(ioData->Buffer, "exit") == 0) {
-				printf("SUB client %u disconnected\n", request->socket);
-				shutdown(request->socket, SD_BOTH);
-				closesocket(request->socket);
-				GlobalFree(request);
-				GlobalFree(ioData);
-				continue;
-			}
-			if (strcmp(ioData->Buffer, "?") == 0) {
-				// send available topics
-				char* topics = get_table_keys(hashTable);
-				if (topics == NULL) {
-					printf("get_keys failed with error: %d\n", GetLastError());
-					return 1;
-				}
-				else {
-					ZeroMemory(&(ioData->Overlapped), sizeof(OVERLAPPED));
-					ioData->BytesRECV = 0;
-					ioData->DataBuf.len = BUFF_SIZE;
-					ioData->DataBuf.buf = topics;
-
-					if (WSASend(request->socket, &(ioData->DataBuf), 1, &sendBytes, 0, &(ioData->Overlapped), NULL) == SOCKET_ERROR) {
-						if (WSAGetLastError() != ERROR_IO_PENDING) {
-							printf("WSASend failed with error: %d\n", WSAGetLastError());
-							return 1;
-						}
-					}
-					continue;
-				}
-			}
-			printf("SUB client %u requesting  subscription to \"%s\"\n", request->socket, ioData->Buffer);
+			printf("SUB client %u requesting  subscription to \"%s\"\n", (int)request->socket, ioData->Buffer);
 			if (has_key(hashTable, ioData->Buffer)) {
 				if (!add_table_item(hashTable, ioData->Buffer, request->socket)) {
-					printf("subscribe add_list_item failed with error: %d\n", GetLastError());
-					return 1;
+					printf("subscribe add_list_item failed");
+					continue;
 				}
 				else
 				{
-					printf("SUB client %u subscribed to \"%s\"\n", request->socket, ioData->Buffer);
+					printf("SUB client %u subscribed to \"%s\"\n", (int)request->socket, ioData->Buffer);
 				}
 			}
 			else {
@@ -397,15 +376,14 @@ DWORD WINAPI WorkerThread(LPVOID args) {
 				ZeroMemory(&(ioData->Overlapped), sizeof(OVERLAPPED));
 				ioData->BytesRECV = 0;
 				ioData->DataBuf.len = 1;
-				strcpy_s(ioData->DataBuf.buf, 1, "");
+				strcpy_s(ioData->DataBuf.buf, sizeof("-")+1, "-");
 
 				if (WSASend(request->socket, &(ioData->DataBuf), 1, &sendBytes, 0, &(ioData->Overlapped), NULL) == SOCKET_ERROR) {
 					if (WSAGetLastError() != ERROR_IO_PENDING) {
 						printf("WSASend failed with error: %d\n", WSAGetLastError());
-						return 1;
+						continue;
 					}
 				}
-				continue;
 			}
 		}
 		else {
@@ -421,11 +399,12 @@ DWORD WINAPI WorkerThread(LPVOID args) {
 		if (WSARecv(request->socket, &(ioData->DataBuf), 1, &recvBytes, &Flags, &(ioData->Overlapped), NULL) == SOCKET_ERROR) {
 			if (WSAGetLastError() != ERROR_IO_PENDING) {
 				printf("WSARecv failed with error: %d\n", WSAGetLastError());
-				return 1;
+				break;
 			}
 		}
 	}
+	// thread cleanup
+	printf("Worker thread finished...\n");
+	return 0;
 
 }
-
-
