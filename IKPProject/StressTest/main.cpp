@@ -48,7 +48,6 @@ void stress_tests() {
 
 			pub_test(topic, msg, num);
 
-			fflush(stdin);
 
 		}
 		else if (option == '2') {

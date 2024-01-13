@@ -65,7 +65,6 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 	IODATA* reqData = NULL;
 	REQUEST* request = NULL;
 	while (!cancelationToken) {
-
 		// accept a client socket
 		acceptSocket = accept(listenSocket, NULL, NULL);
 		if (acceptSocket == INVALID_SOCKET) {
@@ -108,9 +107,25 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 
 		// receive data until the client shuts down the connection
 		if (WSARecv(acceptSocket, &(reqData->DataBuf), 1, &RecvBytes, &Flags, &(reqData->Overlapped), NULL) == SOCKET_ERROR) {
-			if (WSAGetLastError() != ERROR_IO_PENDING) {
-				printf("WSARecv failed with error: %d\n", WSAGetLastError());
+			int error = WSAGetLastError();
+			if (error == WSAESHUTDOWN) {
+				// Connection closed gracefully
+				printf("Pub client disconected!\n");
 				closesocket(acceptSocket);
+				GlobalFree(reqData->Buffer);
+				if (reqData->DataBuf.buf != NULL)
+					GlobalFree(reqData->DataBuf.buf);
+				GlobalFree(reqData);
+				GlobalFree(request);
+			}
+			else if (error != ERROR_IO_PENDING) {
+				printf("WSARecv failed with error: %d\n", error);
+				closesocket(acceptSocket);
+				GlobalFree(reqData->Buffer);
+				if (reqData->DataBuf.buf != NULL)
+					GlobalFree(reqData->DataBuf.buf);
+				GlobalFree(reqData);
+				GlobalFree(request);
 			}
 		}
 	}
@@ -120,12 +135,6 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 	shutdown(listenSocket, SD_BOTH);
 	closesocket(listenSocket);
 	closesocket(acceptSocket);
-	if (reqData != NULL) {
-		GlobalFree(reqData);
-	}
-	if (request != NULL) {
-		GlobalFree(request);
-	}
 	WSACleanup();
 	printf("PubAccept thread cleanup done\n");
 	printf("PubAccept thread exiting...\n");
@@ -241,12 +250,24 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 			int error = WSAGetLastError();
 			if (error == WSAESHUTDOWN) {
 				// Connection closed gracefully
-				printf("Client disconected!\n");
+				printf("Sub client disconected!\n");
 				closesocket(acceptSocket);
+				GlobalFree(reqData->Buffer);
+				if (reqData->DataBuf.buf != NULL)
+					GlobalFree(reqData->DataBuf.buf);
+				GlobalFree(reqData);
+				closesocket(request->socket);
+				GlobalFree(request);
 			}
 			else if (error != ERROR_IO_PENDING) {
 				printf("WSARecv failed with error: %d\n", error);
 				closesocket(acceptSocket);
+				GlobalFree(reqData->Buffer);
+				if (reqData->DataBuf.buf != NULL)
+					GlobalFree(reqData->DataBuf.buf);
+				GlobalFree(reqData);
+				closesocket(request->socket);
+				GlobalFree(request);
 			}
 		}
 	}
@@ -256,12 +277,6 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 	shutdown(listenSocket, SD_BOTH);
 	closesocket(listenSocket);
 	closesocket(acceptSocket);
-	if (reqData != NULL) {
-		GlobalFree(reqData);
-	}
-	if (request != NULL) {
-		GlobalFree(request);
-	}
 	WSACleanup();
 	printf("SubAccept thread cleanup done\n");
 	printf("SubAccept thread exiting...\n");
@@ -310,7 +325,6 @@ DWORD WINAPI WorkerThread(LPVOID args) {
 			if (bytesTransferred == 0) {
 				// client disconnected
 				printf("Client disconnected\n");
-				ZeroMemory(ioData->Buffer, BUFF_SIZE);
 				closesocket(request->socket);
 				continue;
 			}

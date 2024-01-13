@@ -69,8 +69,8 @@ int main() {
 	free_hash_table(&args.hashTable);
 	free(args.hashTable);
 	WSACleanup();
-	printf("Wait for threads to finish (5s)\n");
-	Sleep(5000);
+	printf("Wait for threads to finish\n");
+	Sleep(1000);
 	printf("Press any key to exit...\n");
 	getchar();
 	return 0;
@@ -87,7 +87,6 @@ void menu(HASH_TABLE* table) {
 
 		printf("Enter option: ");
 		option = getchar();
-		fflush(stdin);
 
 		if (option == '1') {
 			print_hash_table(table);
