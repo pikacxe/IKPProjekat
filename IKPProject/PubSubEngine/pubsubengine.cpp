@@ -60,7 +60,7 @@ int main() {
 
 	cancelationToken = TRUE;
 	printf("Press any key to exit...\n");
-	getchar();
+	//getchar();
 
 	// Cleanup
 	CloseHandle(pubAcceptThreadHandle);

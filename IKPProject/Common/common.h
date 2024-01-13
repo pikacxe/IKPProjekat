@@ -26,12 +26,6 @@ typedef struct _PUB_INFO
 	SOCKET sock;
 }PUB_INFO;
 
-typedef struct _TOPIC_INFO
-{
-	char** topics;
-	int count;
-}TOPIC_INFO;
-
 /// <summary>
 /// connect to PubSub engine
 /// </summary>

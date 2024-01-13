@@ -67,13 +67,6 @@ LIST* get_table_item(HASH_TABLE* table, const char* key);
 bool has_key(HASH_TABLE* table, const char* key);
 
 /// <summary>
-/// Get table keys
-/// </summary>
-/// <param name="table"> - source table</param>
-/// <returns>Table keys if table is not empty, otherwise NULL</returns>
-void get_table_keys(HASH_TABLE* table, TOPIC_INFO* info);
-
-/// <summary>
 /// Remove item from table
 /// </summary>
 /// <param name="table"> - source table</param>

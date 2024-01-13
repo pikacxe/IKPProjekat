@@ -5,7 +5,6 @@
 
 void test_list(int num);
 void test_hash_table(int keys, int max_socks);
-void test_get_ht_keys();
 
 
 int main() {
@@ -22,10 +21,6 @@ int main() {
 	printf("Hash table testing...\n");
 
 	test_hash_table(3, 5);
-
-	printf("\n");
-
-	test_get_ht_keys();
 
 	printf("End hash table testing...\n");
 
@@ -104,53 +99,6 @@ void test_hash_table(int keys, int max_socks) {
 
 	print_hash_table(table);
 
-	free_hash_table(&table);
-	free(key);
-	// passed with no leaks
-}
-
-void test_get_ht_keys() {
-	HASH_TABLE* table = init_hash_table();
-	if (table == NULL) {
-		printf("init_hash_table() failed\n");
-		return;
-	}
-
-	char* key = (char*)malloc(sizeof(char) * MAX_KEY_LEN);
-	if (key == NULL) {
-		printf("malloc() failed\n");
-		return;
-	}
-	// add keys and random sockets per key
-	for (int i = 0; i < 5; i++) {
-		sprintf_s(key, MAX_KEY_LEN, "key%d", i);
-		add_list_table(table, key);
-		for (int j = 0; j < rand() % 5; j++) {
-			add_table_item(table, key, rand() % 100);
-		}
-	}
-
-	print_hash_table(table);
-
-	TOPIC_INFO keys;
-	for (int i = 0; i < 3; i++) {
-		get_table_keys(table, &keys);
-		if (keys.count == 0) {
-			printf("get_ht_keys() failed\n");
-			return;
-		}
-
-		for (int i = 0; i < keys.count; i++) {
-			printf("%s\n", keys.topics[i]);
-		}
-
-		for (int i = 0; i < keys.count; i++) {
-			free(keys.topics[i]);
-		}
-
-		free(keys.topics);
-		printf("\n\n");
-	}
 	free_hash_table(&table);
 	free(key);
 	// passed with no leaks
