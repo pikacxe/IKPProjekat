@@ -61,17 +61,16 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 
 	printf("PUB server is listening on port %s\n", PUB_PORT_S);
 
-	IODATA* reqData = NULL;
-	REQUEST* request = NULL;
 
 	while (!cancelationToken) {
 
-		request = NULL;
 		// accept a client socket
+		IODATA* reqData;
+		REQUEST* request;
 		acceptSocket = accept(listenSocket, NULL, NULL);
 		if (acceptSocket == INVALID_SOCKET) {
-			if (GetLastError() != WSAEINTR) {
-				printf("Request to cancel thread received\n");
+			if (GetLastError() == 10004) {
+				printf("Request to cancel pub thread received\n");
 				break;
 			}
 			printf("accept failed with error: %d\n", WSAGetLastError());
@@ -79,27 +78,16 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 		}
 		printf("PUB client connected\n");
 
-		TOPIC_INFO topicInfo;
-		topicInfo.count = 0;
-		get_table_keys(thrArgs->hashTable, &topicInfo);
-
-		if (send(acceptSocket, (char*)&topicInfo, sizeof(TOPIC_INFO), 0) == SOCKET_ERROR) {
-			printf("send() failed with error: %d\n", WSAGetLastError());
-			break;
+		if ((reqData = (IODATA*)GlobalAlloc(GPTR, sizeof(IODATA))) == NULL) {
+			printf("GlobalAlloc failed\n");
+			closesocket(acceptSocket);
+			continue;
 		}
 
-		if (topicInfo.count > 0) {
-			// free unsued memory
-			for (int i = 0; i < topicInfo.count; i++) {
-				free(topicInfo.topics[i]);
-			}
-			free(topicInfo.topics);
-		}
-
-		if ((request = (REQUEST*)GlobalAlloc(GPTR, sizeof(REQUEST))) == NULL)
-		{
-			printf("GlobalAlloc failed with error: %d\n", GetLastError());
-			break;
+		if ((request = (REQUEST*)GlobalAlloc(GPTR, sizeof(REQUEST))) == NULL) {
+			printf("GobalAlloc failed\n");
+			closesocket(acceptSocket);
+			continue;
 		}
 
 		// create a new client
@@ -109,15 +97,8 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 		if (CreateIoCompletionPort((HANDLE)acceptSocket, completitionPort, (ULONG_PTR)request, 0) == NULL)
 		{
 			printf("CreateIoCompletionPort failed with error: %d\n", GetLastError());
-			break;
-		}
-
-		reqData = NULL;
-
-		if ((reqData = (IODATA*)GlobalAlloc(GPTR, sizeof(IODATA))) == NULL)
-		{
-			printf("GlobalAlloc failed with error: %d\n", GetLastError());
-			break;
+			closesocket(acceptSocket);
+			continue;
 		}
 
 		ZeroMemory(&(reqData->Overlapped), sizeof(OVERLAPPED));
@@ -142,8 +123,6 @@ DWORD WINAPI PUBAcceptThread(LPVOID lpParam) {
 	closesocket(listenSocket);
 	closesocket(acceptSocket);
 	WSACleanup();
-	GlobalFree(request);
-	GlobalFree(reqData);
 	printf("PubAccept thread cleanup done\n");
 	printf("PubAccept thread exiting...\n");
 	return 0;
@@ -209,44 +188,31 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 
 	printf("SUB server is listening on port %s\n", SUB_PORT_S);
 
-	IODATA* reqData = NULL;
-	REQUEST* request = NULL;
-
 	while (!cancelationToken) {
 
 		// accept a client socket
 		acceptSocket = accept(listenSocket, NULL, NULL);
 		if (acceptSocket == INVALID_SOCKET) {
-			if (GetLastError() != WSAEINTR) {
-				printf("Request to cancel thread received\n");
+			if (GetLastError() == 10004) {
+				printf("Request to cancel sub thread received\n");
 				break;
 			}
 			printf("accept failed with error: %d\n", WSAGetLastError());
 			break;
 		}
+
+		IODATA* reqData;
+		REQUEST* request;
 		printf("SUB client connected\n");
 
-		TOPIC_INFO topicInfo;
-		topicInfo.count = 0;
-		get_table_keys(thrArgs->hashTable, &topicInfo);
-
-		if (send(acceptSocket, (char*)&topicInfo, sizeof(TOPIC_INFO), 0) == SOCKET_ERROR) {
-			printf("send() failed with error: %d\n", WSAGetLastError());
-			break;
+		if ((reqData = (IODATA*)GlobalAlloc(GPTR, sizeof(IODATA))) == NULL) {
+			printf("GlobalAlloc failed\n");
+			continue;
 		}
 
-		if (topicInfo.count > 0) {
-			// free unsued memory
-			for (int i = 0; i < topicInfo.count; i++) {
-				free(topicInfo.topics[i]);
-			}
-			free(topicInfo.topics);
-		}
-
-		if ((request = (REQUEST*)GlobalAlloc(GPTR, sizeof(REQUEST))) == NULL)
-		{
-			printf("GlobalAlloc failed with error: %d\n", GetLastError());
-			break;
+		if ((request = (REQUEST*)GlobalAlloc(GPTR, sizeof(REQUEST))) == NULL) {
+			printf("GobalAlloc failed\n");
+			continue;
 		}
 
 		// create a new client
@@ -259,17 +225,9 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 			break;
 		}
 
-		reqData = NULL;
-
-		if ((reqData = (IODATA*)GlobalAlloc(GPTR, sizeof(IODATA))) == NULL)
-		{
-			printf("GlobalAlloc failed with error: %d\n", GetLastError());
-			break;
-		}
-
 		ZeroMemory(&(reqData->Overlapped), sizeof(OVERLAPPED));
-		reqData->BytesRECV = 0;
 		reqData->BytesSEND = 0;
+		reqData->BytesRECV = 0;
 		reqData->DataBuf.len = BUFF_SIZE;
 		reqData->DataBuf.buf = reqData->Buffer;
 
@@ -289,8 +247,6 @@ DWORD WINAPI SUBAcceptThread(LPVOID lpParam) {
 	closesocket(listenSocket);
 	closesocket(acceptSocket);
 	WSACleanup();
-	GlobalFree(request);
-	GlobalFree(reqData);
 	printf("SubAccept thread cleanup done\n");
 	printf("SubAccept thread exiting...\n");
 	return 0;
@@ -301,8 +257,8 @@ DWORD WINAPI WorkerThread(LPVOID args) {
 	HANDLE completionPort = thrArgs->completionPort;
 	HASH_TABLE* hashTable = thrArgs->hashTable;
 	DWORD bytesTransferred;
-	REQUEST* request = NULL;
-	IODATA* ioData = NULL;
+	REQUEST* request;
+	IODATA* ioData;
 	DWORD sendBytes, recvBytes;
 	DWORD Flags;
 	LIST* subs = NULL;
@@ -310,84 +266,77 @@ DWORD WINAPI WorkerThread(LPVOID args) {
 
 
 	while (!cancelationToken) {
+
 		if (GetQueuedCompletionStatus(completionPort, &bytesTransferred, (PULONG_PTR)&request, (LPOVERLAPPED*)&ioData, INFINITE) == 0) {
+			if (GetLastError() == ERROR_ABANDONED_WAIT_0) {
+				// thread was cancelled
+				break;
+			}
 			printf("GetQueuedCompletionStatus failed with error: %d\n", GetLastError());
 			break;
 		}
+
+		printf("Worker thread received %d bytes from client %u\n", bytesTransferred, (int)request->socket);
+		printf("Socket type: %d\n", request->type);
 		// client disconnected
 		if (bytesTransferred == 0) {
 			printf("Client %u disconnected\n", (int)request->socket);
+			shutdown(request->socket, SD_BOTH);
 			closesocket(request->socket);
-			break;
 		}
-		// Pub
-		if (request->type == SOCK_TYPE_PUB) {
-			PUB_INFO* pubInfo = (PUB_INFO*)ioData->Buffer;
-			printf("PUB client %u sent for \"%s\": %s\n", (int)pubInfo->sock, pubInfo->topic, pubInfo->msg);
-			keyExists = has_key(hashTable, pubInfo->topic);
-			if (!keyExists) {
-				// create topic
-				printf("Topic \"%s\" does not exist, creating...\n", pubInfo->topic);
-				if (!add_list_table(hashTable, pubInfo->topic)) {
-					printf("add_list_table failed");
-					continue;
+		else {
+			// Pub
+			if (request->type == SOCK_TYPE_PUB) {
+				PUB_INFO* pubInfo = (PUB_INFO*)ioData->Buffer;
+				printf("PUB client %u sent for \"%s\": %s\n", (int)pubInfo->sock, pubInfo->topic, pubInfo->msg);
+				keyExists = has_key(hashTable, pubInfo->topic);
+				if (!keyExists) {
+					// create topic
+					printf("Topic \"%s\" does not exist, creating...\n", pubInfo->topic);
+					if (!add_list_table(hashTable, pubInfo->topic)) {
+						printf("add_list_table failed: topic not created");
+					}
+					else {
+						printf("Topic \"%s\" created\n", pubInfo->topic);
+					}
 				}
 				else {
-					printf("Topic \"%s\" created\n", pubInfo->topic);
-				}
-			}
-			else {
-				if ((subs = get_table_item(hashTable, pubInfo->topic)) == NULL) {
-					printf("get_table_item failed");
-					continue;
-				}
-				else {
+					subs = get_table_item(hashTable, pubInfo->topic);
 					if (subs->count > 0) {
 						printf("Topic \"%s\" exists, sending to subscribers...\n", pubInfo->topic);
 						LIST_ITEM* sub = subs->head;
 						while (sub != NULL) {
 							// send to all subscribers
 							sendBytes = strlen(pubInfo->msg) + 1;
-							ioData->BytesRECV = 0;
-							ioData->DataBuf.len = sendBytes;
-							ioData->DataBuf.buf = pubInfo->msg;
 							send(sub->data, pubInfo->msg, sendBytes, 0);
 							sub = sub->next;
 						}
 					}
 				}
 			}
-		}
-		// SUB
-		else if (request->type == SOCK_TYPE_SUB) {
-			printf("SUB client %u requesting  subscription to \"%s\"\n", (int)request->socket, ioData->Buffer);
-			if (has_key(hashTable, ioData->Buffer)) {
-				if (!add_table_item(hashTable, ioData->Buffer, request->socket)) {
-					printf("subscribe add_list_item failed");
-					continue;
+			// SUB
+			else if (request->type == SOCK_TYPE_SUB) {
+				printf("SUB client %u requesting  subscription to \"%s\"\n", (int)request->socket, ioData->Buffer);
+				if (has_key(hashTable, ioData->Buffer)) {
+					if (!add_table_item(hashTable, ioData->Buffer, request->socket)) {
+						printf("subscribe add_list_item failed");
+					}
+					else
+					{
+						printf("SUB client %u subscribed to \"%s\"\n", (int)request->socket, ioData->Buffer);
+						send(request->socket, ioData->Buffer, strlen(ioData->Buffer) + 1, 0);
+					}
 				}
-				else
-				{
-					printf("SUB client %u subscribed to \"%s\"\n", (int)request->socket, ioData->Buffer);
+				else {
+					printf("Topic \"%s\" does not exist. Notifing client...\n", ioData->Buffer);
+					sendBytes = strlen("-") + 1;
+					send(request->socket, "-", sendBytes, 0);
+
 				}
 			}
 			else {
-				printf("Topic \"%s\" does not exist. Notifing client...\n", ioData->Buffer);
-				ZeroMemory(&(ioData->Overlapped), sizeof(OVERLAPPED));
-				ioData->BytesRECV = 0;
-				ioData->DataBuf.len = 1;
-				strcpy_s(ioData->DataBuf.buf, sizeof("-")+1, "-");
-
-				if (WSASend(request->socket, &(ioData->DataBuf), 1, &sendBytes, 0, &(ioData->Overlapped), NULL) == SOCKET_ERROR) {
-					if (WSAGetLastError() != ERROR_IO_PENDING) {
-						printf("WSASend failed with error: %d\n", WSAGetLastError());
-						continue;
-					}
-				}
+				printf("Unknown client type\n");
 			}
-		}
-		else {
-			printf("Unknown client type\n");
 		}
 
 		Flags = 0;
@@ -403,7 +352,6 @@ DWORD WINAPI WorkerThread(LPVOID args) {
 			}
 		}
 	}
-	// thread cleanup
 	printf("Worker thread finished...\n");
 	return 0;
 

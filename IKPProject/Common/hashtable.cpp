@@ -135,7 +135,7 @@ bool add_table_item(HASH_TABLE* table, const char* key, SOCKET sock)
 	}
 	LIST_ITEM newItem = { sock, NULL };
 	add_list_front(item->list, newItem);
-
+	
 	LeaveCriticalSection(&table->cs);
 	return true;
 }
@@ -214,44 +214,6 @@ bool has_key(HASH_TABLE* table, const char* key)
 	LeaveCriticalSection(&table->cs);
 	return true;
 }
-
-void get_table_keys(HASH_TABLE* table, TOPIC_INFO* info) {
-	if (table == NULL)
-	{
-		printf("get_table_keys() failed: table is NULL\n");
-		return;
-	}
-	if (table->count == 0) {
-		printf("get_table_keys(): table is empty\n");
-		info->count = 0;
-		return;
-	}
-	if (info == NULL) {
-		printf("get_table_keys() failed: info is NULL\n");
-		return;
-	}
-	info->count = 0;
-	info->topics = (char**)malloc(sizeof(char*) * table->count);
-	if (info->topics == NULL) {
-		printf("get_table_keys() failed: out of memory\n");
-		return;
-	}
-	EnterCriticalSection(&table->cs);
-	for (int i = 0; i < TABLE_SIZE; i++) {
-		if (table->items[i].key != NULL) {
-			info->topics[info->count] = (char*)malloc(sizeof(char) * MAX_KEY_LEN);
-			if (info->topics[info->count] == NULL) {
-				printf("get_table_keys() failed: out of memory\n");
-				LeaveCriticalSection(&table->cs);
-				return;
-			}
-			strcpy_s(info->topics[info->count], strlen(table->items[i].key) + 1, table->items[i].key);
-			info->count++;
-		}
-	}
-	LeaveCriticalSection(&table->cs);
-}
-
 
 bool remove_table_item(HASH_TABLE* table, const char* key)
 {

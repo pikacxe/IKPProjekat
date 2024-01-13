@@ -29,6 +29,7 @@ void add_list_front(LIST* list, LIST_ITEM data)
 	if (item == NULL)
 	{
 		printf("add_list_front() failed: out of memory\n");
+		LeaveCriticalSection(&list->cs);
 		return;
 	}
 
@@ -64,6 +65,7 @@ void add_list_back(LIST* list, LIST_ITEM data)
 	if (item == NULL)
 	{
 		printf("add_list_back() failed: out of memory\n");
+		LeaveCriticalSection(&list->cs);
 		return;
 	}
 
@@ -182,18 +184,22 @@ bool free_list(LIST** list)
 	{
 		return true;
 	}
-	EnterCriticalSection(&(*list)->cs);
-	while ((*list)->head != (*list)->tail)
+	if ((*list)->count != 0)
 	{
-		LIST_ITEM* item = (*list)->head;
-		(*list)->head = item->next;
-		shutdown(item->data, SD_BOTH);
-		closesocket(item->data);
-		free(item);
-		(*list)->count--;
+		EnterCriticalSection(&(*list)->cs);
+		while ((*list)->head != (*list)->tail)
+		{
+			LIST_ITEM* item = (*list)->head;
+			(*list)->head = item->next;
+			shutdown(item->data, SD_BOTH);
+			closesocket(item->data);
+			free(item);
+			(*list)->count--;
+		}
+		LeaveCriticalSection(&(*list)->cs);
 	}
-	LeaveCriticalSection(&(*list)->cs);
 	DeleteCriticalSection(&(*list)->cs);
+	free(*list);
 	return true;
 }
 
